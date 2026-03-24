@@ -175,17 +175,23 @@ async function cargarTerritorios() {
   TERRITORIOS = snap.docs.flatMap(d => {
     const t = d.data();
     const poligonos = t.poligonos || [];
-    // Normalizar cada vértice: acepta [lat,lng] o {lat,lng}
+    // Estructura real en Firestore: poligonos[i].coords[j] = {lat, lng}
     function normCoords(poly) {
-      return poly.map(v => Array.isArray(v) ? [v[0], v[1]] : [v.lat, v.lng]);
+      const arr = poly.coords || poly; // soporta {coords:[]} y [[lat,lng]]
+      return (Array.isArray(arr) ? arr : []).map(v =>
+        Array.isArray(v) ? [v[0], v[1]] : [v.lat, v.lng]
+      );
     }
-    // Cada territorio puede tener múltiples sub-polígonos (poligonos[0], [1], ...)
-    // Los renderizamos como entradas separadas con sufijo si hay más de uno
+    // punto puede ser {lat,lng} o [lat,lng]
+    function normPunto(p) {
+      if (!p) return null;
+      return Array.isArray(p) ? p : [p.lat, p.lng];
+    }
     return poligonos.map((poly, idx) => ({
       num:    String(t.id) + (poligonos.length > 1 ? String.fromCharCode(97 + idx) : ''),
       grupo:  String(t.grupoId),
       coords: normCoords(poly),
-      punto:  t.punto || null,
+      punto:  normPunto(t.punto),
       tipo:   t.tipo || 'normal',
     })).filter(entry => entry.coords.length >= 3);
   });
