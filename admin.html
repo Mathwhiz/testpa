@@ -7,7 +7,7 @@
   <link rel="icon" href="favicon.svg" type="image/svg+xml">
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-    body { background: #1e1e1e; color: #eee; font-family: system-ui, sans-serif; min-height: 100vh; }
+    body { background-color: #1a1c1f; background-image: radial-gradient(ellipse at 10% 15%, rgba(127,119,221,0.10) 0%, transparent 50%), radial-gradient(ellipse at 90% 85%, rgba(55,138,221,0.08) 0%, transparent 50%); color: #eee; font-family: system-ui, sans-serif; min-height: 100vh; }
     .app { max-width: 480px; margin: 0 auto; padding: 1.5rem 1rem; }
     .view { animation: fadeIn .2s ease; }
     @keyframes fadeIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
@@ -92,10 +92,8 @@
 
   <!-- ── PIN ── -->
   <div id="view-pin" class="app">
-    <div style="padding-top:1rem;">
-      <a href="index.html" style="display:inline-flex;align-items:center;gap:6px;font-size:13px;color:#666;text-decoration:none;padding:8px 14px;background:#252525;border:1px solid rgba(255,255,255,0.1);border-radius:10px;">‹ Congregaciones</a>
-    </div>
-    <div class="pin-wrap" style="min-height:calc(100vh - 60px)">
+    <a href="index.html" style="position:fixed;top:16px;left:16px;z-index:100;display:inline-flex;align-items:center;gap:6px;font-size:13px;color:#aaa;text-decoration:none;padding:7px 13px;background:#252525;border:1px solid rgba(255,255,255,0.2);border-radius:10px;">‹ Congregaciones</a>
+    <div class="pin-wrap">
       <div style="text-align:center;display:flex;flex-direction:column;align-items:center;gap:10px;">
         <div class="cs-logo-placeholder"></div>
         <div class="pin-title">Admin</div>
@@ -127,7 +125,8 @@
 
   <!-- ── DASHBOARD ── -->
   <div id="view-dashboard" class="app" style="display:none">
-    <a href="index.html" style="display:inline-flex;align-items:center;gap:6px;font-size:13px;color:#aaa;text-decoration:none;margin-bottom:20px;padding:8px 14px;background:#252525;border:1px solid rgba(255,255,255,0.15);border-radius:10px;width:fit-content;">‹ Congregaciones</a>
+    <a href="index.html" style="position:fixed;top:16px;left:16px;z-index:100;display:inline-flex;align-items:center;gap:6px;font-size:13px;color:#aaa;text-decoration:none;padding:7px 13px;background:#252525;border:1px solid rgba(255,255,255,0.2);border-radius:10px;">‹ Congregaciones</a>
+    <div style="height:52px;"></div>
     <p class="section-title">Congregaciones</p>
     <p class="section-sub">Panel de administración</p>
     <div id="dash-loading" class="loading-wrap"><div class="spinner"></div><div>Cargando...</div></div>
@@ -137,7 +136,8 @@
 
   <!-- ── WIZARD ── -->
   <div id="view-wizard" class="app" style="display:none">
-    <a href="#" onclick="showView('view-dashboard');return false;" style="display:inline-flex;align-items:center;gap:6px;font-size:13px;color:#666;text-decoration:none;margin-bottom:20px;padding:8px 14px;background:#252525;border:1px solid rgba(255,255,255,0.1);border-radius:10px;width:fit-content;">‹ Dashboard</a>
+    <a href="#" onclick="showView('view-dashboard');return false;" style="position:fixed;top:16px;left:16px;z-index:100;display:inline-flex;align-items:center;gap:6px;font-size:13px;color:#aaa;text-decoration:none;padding:7px 13px;background:#252525;border:1px solid rgba(255,255,255,0.2);border-radius:10px;">‹ Dashboard</a>
+    <div style="height:52px;"></div>
     <div class="step-indicator">
       <div class="step-dot" id="sdot-0"></div>
       <div class="step-dot" id="sdot-1"></div>
@@ -200,7 +200,8 @@
 
   <!-- ── TERRITORIOS ── -->
   <div id="view-territorios" class="app" style="display:none">
-    <a href="#" onclick="showView('view-dashboard');return false;" style="display:inline-block;font-size:13px;color:#555;text-decoration:none;margin-bottom:20px;">← Volver</a>
+    <a href="#" onclick="showView('view-dashboard');return false;" style="position:fixed;top:16px;left:16px;z-index:100;display:inline-flex;align-items:center;gap:6px;font-size:13px;color:#aaa;text-decoration:none;padding:7px 13px;background:#252525;border:1px solid rgba(255,255,255,0.2);border-radius:10px;">‹ Dashboard</a>
+    <div style="height:52px;"></div>
     <p class="section-title" id="terr-title"></p>
     <p class="section-sub">Asignación de grupos · tocá un grupo para asignar</p>
     <div id="terr-filtros" style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:14px;"></div>
