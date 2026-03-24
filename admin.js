@@ -1,6 +1,6 @@
 import { db } from './firebase.js';
 import {
-  collection, doc, getDoc, getDocs, addDoc, writeBatch, Timestamp
+  collection, doc, getDoc, getDocs, addDoc, updateDoc, deleteDoc, writeBatch, Timestamp
 } from "https://www.gstatic.com/firebasejs/11.6.0/firebase-firestore.js";
 
 // ── Super-admin PIN ──
@@ -89,13 +89,17 @@ async function loadDashboard() {
         const fecha = creadoEn
           ? new Date(creadoEn.seconds * 1000).toLocaleDateString('es-AR')
           : '—';
+        const nombreSafe = (nombre || '(sin nombre)').replace(/'/g, "\\'");
         list.innerHTML += `
           <div class="congre-item">
-            <div>
+            <div style="flex:1;min-width:0;">
               <div class="congre-nombre">${nombre || '(sin nombre)'}</div>
               <div class="congre-meta">${d.id} · ${fecha}</div>
             </div>
-            <span class="badge">activa</span>
+            <div style="display:flex;gap:6px;flex-shrink:0;">
+              <button class="btn-card-action" onclick="editCongre('${d.id}')" title="Editar">✏️</button>
+              <button class="btn-card-action btn-card-delete" onclick="deleteCongre('${d.id}','${nombreSafe}')" title="Eliminar">🗑️</button>
+            </div>
           </div>`;
       });
     }
@@ -117,9 +121,10 @@ const GRUPOS_DEFAULT = [
   { id: 'C', label: 'Congregación', color: '#7F77DD', pin: '5555' },
 ];
 
-let wizardStep     = 0;
-let kmlTerritories = null;
-let wizardGrupos   = [];
+let wizardStep      = 0;
+let kmlTerritories  = null;
+let wizardGrupos    = [];
+let editingCongreId = null;
 
 function renderGruposConfig() {
   const gc = document.getElementById('grupos-config');
@@ -157,21 +162,74 @@ function removeGrupo(idx) {
   renderGruposConfig();
 }
 
-function startWizard() {
-  wizardStep     = 0;
-  kmlTerritories = null;
-  wizardGrupos   = GRUPOS_DEFAULT.map(g => ({ ...g }));
+function startWizard(prefill = null) {
+  wizardStep      = 0;
+  kmlTerritories  = null;
+  if (!prefill) editingCongreId = null;
+  wizardGrupos   = prefill?.grupos?.map(g => ({ ...g })) ?? GRUPOS_DEFAULT.map(g => ({ ...g }));
 
-  document.getElementById('w-nombre').value  = '';
-  document.getElementById('w-pin').value     = '';
+  document.getElementById('w-nombre').value  = prefill?.nombre       || '';
+  document.getElementById('w-pin').value     = prefill?.pinEncargado || '';
   document.getElementById('kml-input').value = '';
   document.getElementById('kml-preview').style.display = 'none';
-  document.getElementById('btn-crear').disabled = true;
+  // En modo edición el KML es opcional → habilitamos el botón de guardar por defecto
+  document.getElementById('btn-crear').disabled = !editingCongreId;
+  document.getElementById('btn-crear').textContent = editingCongreId ? 'Guardar →' : 'Crear →';
   document.getElementById('wizard-status').textContent = '';
 
   renderGruposConfig();
   showWizardStep(0);
   showView('view-wizard');
+}
+
+async function editCongre(id) {
+  editingCongreId = id;
+  uiLoading.show('Cargando datos...');
+  try {
+    const [congreSnap, gruposSnap] = await Promise.all([
+      getDoc(doc(db, 'congregaciones', id)),
+      getDocs(collection(db, 'congregaciones', id, 'grupos')),
+    ]);
+    uiLoading.hide();
+    const data   = congreSnap.data();
+    const grupos = [];
+    gruposSnap.forEach(d => grupos.push(d.data()));
+    grupos.sort((a, b) => String(a.id) < String(b.id) ? -1 : 1);
+    startWizard({ nombre: data.nombre, pinEncargado: data.pinEncargado, grupos });
+  } catch(e) {
+    uiLoading.hide();
+    await uiAlert('Error al cargar los datos: ' + e.message);
+  }
+}
+
+async function deleteCongre(id, nombre) {
+  const ok = await uiConfirm({
+    title: 'Eliminar congregación',
+    msg: `¿Seguro que querés eliminar "${nombre}"? Se borrarán también sus grupos, territorios, publicadores y asignaciones. Esta acción no se puede deshacer.`,
+    confirmText: 'Eliminar',
+    cancelText: 'Cancelar',
+    type: 'danger',
+  });
+  if (!ok) return;
+
+  uiLoading.show('Eliminando...');
+  try {
+    const subcols = ['grupos', 'territorios', 'salidas', 'publicadores', 'asignaciones'];
+    for (const sub of subcols) {
+      const snap = await getDocs(collection(db, 'congregaciones', id, sub));
+      if (snap.empty) continue;
+      const batch = writeBatch(db);
+      snap.forEach(d => batch.delete(d.ref));
+      await batch.commit();
+    }
+    await deleteDoc(doc(db, 'congregaciones', id));
+    uiLoading.hide();
+    uiToast('Congregación eliminada', 'success');
+    loadDashboard();
+  } catch(e) {
+    uiLoading.hide();
+    await uiAlert('Error al eliminar: ' + e.message);
+  }
 }
 
 function showWizardStep(step) {
@@ -301,24 +359,38 @@ async function crearCongregacion(skipKml) {
 
   const grupos = wizardGrupos;
 
-  uiLoading.show('Creando congregación...');
+  uiLoading.show(editingCongreId ? 'Guardando cambios...' : 'Creando congregación...');
   try {
-    // 1. Crear doc de congregación
-    const congreRef = await addDoc(collection(db, 'congregaciones'), {
-      nombre,
-      pinEncargado,
-      creadoEn: Timestamp.now(),
-    });
-    const congreId = congreRef.id;
+    let congreId;
 
-    // 2. Crear grupos en batch
+    if (editingCongreId) {
+      // ── MODO EDICIÓN ──
+      congreId = editingCongreId;
+      await updateDoc(doc(db, 'congregaciones', congreId), { nombre, pinEncargado });
+
+      // Reemplazar grupos: borrar existentes y crear los nuevos
+      const existSnap = await getDocs(collection(db, 'congregaciones', congreId, 'grupos'));
+      const delBatch = writeBatch(db);
+      existSnap.forEach(d => delBatch.delete(d.ref));
+      await delBatch.commit();
+    } else {
+      // ── MODO CREACIÓN ──
+      const congreRef = await addDoc(collection(db, 'congregaciones'), {
+        nombre,
+        pinEncargado,
+        creadoEn: Timestamp.now(),
+      });
+      congreId = congreRef.id;
+    }
+
+    // Grupos en batch
     const gruposBatch = writeBatch(db);
     grupos.forEach(g => {
       gruposBatch.set(doc(db, 'congregaciones', congreId, 'grupos', g.id), g);
     });
     await gruposBatch.commit();
 
-    // 3. Subir territorios del KML en batches de 400
+    // Territorios del KML en batches de 400
     if (!skipKml && kmlTerritories?.length > 0) {
       const total = kmlTerritories.length;
       const terrCol = collection(db, 'congregaciones', congreId, 'territorios');
@@ -333,8 +405,12 @@ async function crearCongregacion(skipKml) {
     }
 
     uiLoading.hide();
+    const wasEditing = !!editingCongreId;
+    editingCongreId = null;
     await uiAlert(
-      `Congregación "${nombre}" creada correctamente.\n\nID: ${congreId}`,
+      wasEditing
+        ? `Cambios guardados en "${nombre}".`
+        : `Congregación "${nombre}" creada.\n\nID: ${congreId}`,
       '¡Listo!'
     );
     showView('view-dashboard');
@@ -352,6 +428,8 @@ window.pinPress          = pinPress;
 window.pinDelete         = pinDelete;
 window.showView          = showView;
 window.startWizard       = startWizard;
+window.editCongre        = editCongre;
+window.deleteCongre      = deleteCongre;
 window.wizardNext        = wizardNext;
 window.wizardPrev        = wizardPrev;
 window.addGrupo          = addGrupo;
