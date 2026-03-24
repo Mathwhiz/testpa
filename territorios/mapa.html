@@ -60,7 +60,7 @@
   .map-toast.remove-toast { background: rgba(46,26,26,0.95); color: #F09595; }
 
   .map-legend {
-    position: fixed; bottom: 70px; right: 10px; z-index: 999;
+    position: fixed; bottom: 70px; left: 10px; z-index: 999;
     background: rgba(18,18,18,0.88); border: 0.5px solid #333;
     border-radius: 10px; padding: 8px 10px; font-size: 11px; color: #bbb;
   }
@@ -75,6 +75,26 @@
   .terr-popup-label { color: #888; }
   .terr-popup-val { color: #eee; font-weight: 500; }
   .badge-progreso { margin-top: 8px; background: rgba(239,159,39,0.2); color: #EF9F27; border: 0.5px solid #EF9F27; border-radius: 6px; padding: 3px 8px; font-size: 11px; font-weight: 600; text-align: center; }
+
+  /* Zoom control — esquina inferior derecha, estilo oscuro */
+  .leaflet-control-zoom {
+    margin-bottom: 14px !important;
+    margin-right: 10px !important;
+    border: none !important;
+  }
+  .leaflet-control-zoom a {
+    background: rgba(30,30,30,0.92) !important;
+    color: #ccc !important;
+    border: 0.5px solid #444 !important;
+    width: 30px !important;
+    height: 30px !important;
+    line-height: 30px !important;
+    font-size: 16px !important;
+  }
+  .leaflet-control-zoom a:hover {
+    background: rgba(50,50,50,0.95) !important;
+    color: #eee !important;
+  }
 
   /* Loading overlay */
   #map-loading {
@@ -149,7 +169,6 @@ const GRUPO_COLORS = {
   'C': { fill:'#7F77DD', border:'#4A44A5' },
 };
 
-const SALON_DEL_REINO = [-36.630995, -64.280036];
 const GRUPO_LABEL = { '1':'Grupo 1','2':'Grupo 2','3':'Grupo 3','4':'Grupo 4','C':'Congregación' };
 
 // Territorios cargados desde Firestore — formato: [{num, grupo, coords, punto, tipo}]
@@ -264,14 +283,12 @@ async function initMap() {
   }
 
   map = L.map('map', {
-    center: [-36.640, -64.295],
-    zoom: 14,
-    zoomControl: true,
+    center: [0, 0],
+    zoom: 2,
+    zoomControl: false,
     attributionControl: false,
-    maxBounds: L.latLngBounds([-36.675, -64.36], [-36.61, -64.24]),
-    maxBoundsViscosity: 1.0,
-    minZoom: 13,
   });
+  L.control.zoom({ position: 'bottomright' }).addTo(map);
   L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19 }).addTo(map);
   setTimeout(() => { map.invalidateSize(); }, 100);
 
@@ -289,14 +306,6 @@ async function initMap() {
       map.fitBounds(b, { padding: [20, 20] });
     }
   }
-
-  L.marker(SALON_DEL_REINO, {
-    icon: L.divIcon({
-      className: '',
-      html: `<div title="Salón del Reino" style="font-size:20px;line-height:1;filter:drop-shadow(0 1px 3px rgba(0,0,0,0.8));">🏠</div>`,
-      iconSize: [24, 24], iconAnchor: [12, 20],
-    })
-  }).bindPopup('<div style="color:#eee;font-weight:600;font-size:13px;">Salón del Reino</div>', {maxWidth:160}).addTo(map);
 
   // Leyenda según modo
   const legend = document.getElementById('map-legend');
