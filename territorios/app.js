@@ -1435,8 +1435,3 @@ window.saveEdit = saveEdit;
 window.deleteEntry = deleteEntry; 
 window.deleteHistorialDoc = deleteHistorialDoc;
 window.openMapaPicker = openMapaPopup;
-
-
-
-
-checkAuth();
