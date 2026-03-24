@@ -1,1 +1,4 @@
 tools/serviceAccountKey.json
+.agents/
+.claude/
+skills-lock.json
