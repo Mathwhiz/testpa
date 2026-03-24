@@ -1402,3 +1402,28 @@ function closeMapaPopup() {
   document.getElementById('mapa-iframe').src = '';
   document.body.style.overflow = '';
 }
+
+window.selectGrupo = selectGrupo;
+window.goToModo = goToModo;
+window.goToStep1 = goToStep1;
+window.goToRegistrar = goToRegistrar;
+window.goToInfoGrupo = goToInfoGrupo;
+window.goToHistorial = goToHistorial;
+window.goToMapa = goToMapa;
+window.cerrarSesion = cerrarSesion;
+window.guardarRegistros = guardarRegistros;
+window.setTerritoryEstado = setTerritoryEstado;
+window.closeModal = closeModal;
+window.handleModalBg = handleModalBg;
+window.pinPress = pinPress;
+window.pinDelete = pinDelete;
+window.pinCancel = pinCancel;
+window.openPin = openPin;
+window.generatePreview = generatePreview;
+window.guardarImagen = guardarImagen;
+window.enviarWhatsapp = enviarWhatsapp;
+window.registrarEnProgreso = registrarEnProgreso;
+window.goBackToConfig = goBackToConfig;
+window.addSalida = addSalida;
+window.cambiarSemana = cambiarSemana;
+window.closeMapaPopup = closeMapaPopup;
