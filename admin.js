@@ -299,9 +299,11 @@ function parseKML(text) {
   const territories = {};
 
   for (const pm of placemarks) {
-    const name    = pm.getElementsByTagName('name')[0]?.textContent?.trim() || '';
-    const baseNum = name.replace(/[a-zA-Z]+$/, '');
-    if (!baseNum || isNaN(parseInt(baseNum))) continue;
+    const name     = pm.getElementsByTagName('name')[0]?.textContent?.trim() || '';
+    // Soporta "1", "1a", "92b", "Territorio 1", "Territorio 1a", etc.
+    const numMatch = name.match(/(\d+)[a-zA-Z]*$/);
+    if (!numMatch) continue;
+    const baseNum = numMatch[1];
 
     if (!territories[baseNum]) {
       territories[baseNum] = {
