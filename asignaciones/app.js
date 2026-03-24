@@ -202,20 +202,31 @@ function getLabelSemana(rows) {
  */
 async function getProgramacion() {
   const snap = await getDocs(query(asigCol(), orderBy('fecha')));
-  return snap.docs.map(d => {
+  const seenFechas = new Set();
+  const rows = [];
+  snap.docs.forEach(d => {
     const data = d.data();
     const row = { _docId: d.id, fecha: '', dia: data.diaSemana || '' };
-    // Convertir fecha YYYY-MM-DD → DD/MM/YY para compatibilidad con funciones existentes
     if (data.fecha) {
       const parts = data.fecha.split('-');
       if (parts.length === 3) {
         row.fecha = `${parts[2]}/${parts[1]}/${parts[0].slice(-2)}`;
       }
     }
-    // Copiar roles
+    // Deduplicar: si ya existe una fila para esta fecha, mergear (conservar el más reciente)
+    if (seenFechas.has(row.fecha)) {
+      const existing = rows.find(r => r.fecha === row.fecha);
+      if (existing) {
+        // Copiar roles que falten en el existente
+        ROLES.forEach(r => { if (!existing[r] && data.roles?.[r]) existing[r] = data.roles[r]; });
+      }
+      return;
+    }
+    seenFechas.add(row.fecha);
     ROLES.forEach(r => { row[r] = (data.roles || {})[r] || ''; });
-    return row;
+    rows.push(row);
   });
+  return rows;
 }
 
 /**
@@ -224,7 +235,6 @@ async function getProgramacion() {
  */
 async function saveProgramacion(data) {
   for (const row of data) {
-    // Convertir fecha DD/MM/YY → YYYY-MM-DD
     const m = row.fecha.match(/^(\d{1,2})\/(\d{1,2})\/(\d{2,4})$/);
     if (!m) continue;
     const y = m[3].length === 2 ? '20' + m[3] : m[3];
@@ -233,10 +243,14 @@ async function saveProgramacion(data) {
     const roles = {};
     ROLES.forEach(r => { if (row[r]) roles[r] = row[r]; });
 
-    // Buscar si ya existe un doc para esa fecha
-    const existing = todasLasFilas.find(f => f.fecha === row.fecha);
-    if (existing && existing._docId) {
-      await updateDoc(doc(asigCol(), existing._docId), { diaSemana: row.dia, roles });
+    // Buscar en Firestore si ya existe doc para esa fecha (evita duplicados sin depender del cache)
+    const existingSnap = await getDocs(query(asigCol(), where('fecha', '==', isoFecha)));
+    if (!existingSnap.empty) {
+      // Si hay varios docs para la misma fecha (bug previo), actualizar el primero y borrar el resto
+      await updateDoc(doc(asigCol(), existingSnap.docs[0].id), { diaSemana: row.dia, roles });
+      for (let i = 1; i < existingSnap.docs.length; i++) {
+        await deleteDoc(doc(asigCol(), existingSnap.docs[i].id));
+      }
     } else {
       await addDoc(asigCol(), { fecha: isoFecha, diaSemana: row.dia, roles });
     }
@@ -251,17 +265,31 @@ async function saveProgramacion(data) {
  */
 async function getHermanos() {
   const snap = await getDocs(pubCol());
-  listaHermanos = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+  // Deduplicar por nombre normalizado (por si hay docs duplicados en Firestore)
+  const seenNombres = new Map(); // nombreNorm → índice en listaHermanos
+  listaHermanos = [];
+  snap.docs.forEach(d => {
+    const data = d.data();
+    const nombreNorm = norm(data.nombre || '');
+    if (!nombreNorm) return;
+    if (seenNombres.has(nombreNorm)) {
+      // Mergear roles si hay duplicado
+      const idx = seenNombres.get(nombreNorm);
+      const existing = listaHermanos[idx];
+      const rolesExtra = (data.roles || []).filter(r => !existing.roles.includes(r));
+      if (rolesExtra.length) existing.roles = [...existing.roles, ...rolesExtra];
+      return;
+    }
+    seenNombres.set(nombreNorm, listaHermanos.length);
+    listaHermanos.push({ id: d.id, ...data, roles: data.roles || [] });
+  });
 
   const result = {};
   ROLES.forEach(r => { result[r] = []; });
-
   listaHermanos.forEach(h => {
     (h.roles || []).forEach(rol => {
       const rolKey = ROL_LISTA_MAP[rol] || rol;
-      if (result[rolKey]) {
-        if (!result[rolKey].includes(h.nombre)) result[rolKey].push(h.nombre);
-      }
+      if (result[rolKey] && !result[rolKey].includes(h.nombre)) result[rolKey].push(h.nombre);
     });
   });
   return result;

@@ -282,8 +282,12 @@ async function initMap() {
   } else if (_grupoParam !== 'all') {
     filterGroup(_grupoParam);
   } else if (allLayers.length) {
-    const validBounds = allLayers.map(l => l.polygon.getBounds()).filter(b => b.isValid());
-    if (validBounds.length) map.fitBounds(L.latLngBounds(validBounds), { padding: [20, 20] });
+    const validLayers = allLayers.filter(l => l.polygon.getBounds().isValid());
+    if (validLayers.length) {
+      const b = validLayers[0].polygon.getBounds();
+      validLayers.slice(1).forEach(l => b.extend(l.polygon.getBounds()));
+      map.fitBounds(b, { padding: [20, 20] });
+    }
   }
 
   L.marker(SALON_DEL_REINO, {
@@ -469,10 +473,11 @@ function confirmPickerSelection() {
 
 function applyPickerFilter(grupo) {
   if (allLayers.length === 0) return;
-  const visible = allLayers.filter(l => l.group === grupo);
-  if (visible.length) {
-    const validBounds = visible.map(l => l.polygon.getBounds()).filter(b => b.isValid());
-    if (validBounds.length) map.flyToBounds(L.latLngBounds(validBounds), { padding:[24,24], maxZoom:16, minZoom:16, duration:0.4 });
+  const validLayers = allLayers.filter(l => l.group === grupo && l.polygon.getBounds().isValid());
+  if (validLayers.length) {
+    const b = validLayers[0].polygon.getBounds();
+    validLayers.slice(1).forEach(l => b.extend(l.polygon.getBounds()));
+    map.flyToBounds(b, { padding:[24,24], maxZoom:16, minZoom:16, duration:0.4 });
   }
 }
 
@@ -549,8 +554,12 @@ window.filterGroup = function(group) {
       polygon.setStyle({ fillOpacity: 0.35, weight: 2.5 });
     });
     if (visible.length) {
-      const validBounds = visible.map(l => l.polygon.getBounds()).filter(b => b.isValid());
-      if (validBounds.length) map.flyToBounds(L.latLngBounds(validBounds), { padding:[30,30], maxZoom:16, duration:0.5 });
+      const validLayers = visible.filter(l => l.polygon.getBounds().isValid());
+      if (validLayers.length) {
+        const b = validLayers[0].polygon.getBounds();
+        validLayers.slice(1).forEach(l => b.extend(l.polygon.getBounds()));
+        map.flyToBounds(b, { padding:[30,30], maxZoom:16, duration:0.5 });
+      }
     }
   }
   map.closePopup();
