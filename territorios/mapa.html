@@ -473,11 +473,16 @@ function confirmPickerSelection() {
 
 function applyPickerFilter(grupo) {
   if (allLayers.length === 0) return;
-  const validLayers = allLayers.filter(l => l.group === grupo && l.polygon.getBounds().isValid());
+
+  const validLayers = allLayers.filter(l =>
+    String(l.group) === String(grupo) &&
+    l.polygon.getBounds().isValid()
+  );
+
   if (validLayers.length) {
     const b = validLayers[0].polygon.getBounds();
     validLayers.slice(1).forEach(l => b.extend(l.polygon.getBounds()));
-    map.flyToBounds(b, { padding:[24,24], maxZoom:16, minZoom:16, duration:0.4 });
+    map.flyToBounds(b, { padding:[24,24], maxZoom:16, duration:0.4 });
   }
 }
 
