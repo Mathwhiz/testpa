@@ -1,4 +1,4 @@
-# CLAUDE.md — Territory App (repo: testpa)
+# CLAUDE.md — AppJW (repo: testpa)
 
 Repo de desarrollo activo de la Territory App para **múltiples congregaciones**.
 Fork del repo original (`mathwhiz.github.io/TerritoryAppJW`) donde se migró el backend
@@ -25,9 +25,12 @@ config/superadmin              → pin  ← PIN del panel de admin
 ```
 
 Flujo de navegación:
-1. `index.html` — elige congregación (Firestore → `sessionStorage`)
-2. `menu.html` — elige módulo (Territorios o Asignaciones)
-3. `territorios/index.html` o `asignaciones/index.html`
+1. `index.html` — elige congregación **y** módulo (dos vistas en la misma página, sin navegar)
+   - Vista 1: lista de congregaciones
+   - Vista 2: selector de módulo (Territorios o Asignaciones) — aparece al hacer click
+   - Si hay `congreId` en `sessionStorage`, salta directo a la vista 2
+2. `territorios/index.html` o `asignaciones/index.html`
+3. Al volver ("← Volver al módulo") → `../index.html` → muestra vista 2 automáticamente
 
 El ID de congregación es un slug legible (ej: `"sur"`, `"norte"`), elegido al crear.
 
@@ -37,8 +40,9 @@ El ID de congregación es un slug legible (ej: `"sur"`, `"norte"`), elegido al c
 
 ```
 /
-├── index.html          # Selector de congregación (con botón Admin abajo a la derecha)
-├── menu.html           # Selector de módulo
+├── index.html          # SPA: vista 1 = elegir congregación · vista 2 = elegir módulo
+│                       # Botón Admin (engranaje morado) fijo abajo a la derecha
+├── menu.html           # Redirect → index.html (conservado por compatibilidad)
 ├── admin.html          # Panel de superadmin (acceso por URL + PIN)
 ├── admin.js            # Lógica del panel de admin
 ├── firebase.js         # Inicialización compartida de Firebase (exporta `db`)
@@ -202,11 +206,15 @@ Formato de almacenamiento: `YYYY-MM-DD`. Display: `DD/MM/YY`.
 
 ## Estilos
 
-- Tema oscuro: `#1e1e1e` bg · `#eee` texto · `#2a2a2a` cards · `#252525` modales
+> El sistema visual completo está documentado en **[UI-STYLE.md](./UI-STYLE.md)**.
+> Leerlo antes de crear o editar cualquier interfaz.
+
+- Tema oscuro con gradiente sutil: `#1a1c1f` bg · `#e8e8e8` texto · `#232628` cards · `#252525` modales
 - Max-width: apps `480px`, covers `320–340px`
-- Fuente: `system-ui, sans-serif`
+- Fuente: `system-ui, sans-serif` — sin Google Fonts
 - Vistas con clase `.view` tienen `fadeIn` 0.2s
 - Versionado de assets: `styles.css?v=X.X` — incrementar al hacer cambios
+- El estilo flat shadcn/oklch fue explorado y **descartado** — no usar
 
 ---
 
