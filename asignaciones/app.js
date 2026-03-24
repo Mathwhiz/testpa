@@ -929,20 +929,34 @@ async function confirmarEliminar(docId, nombre) {
   }
 }
 
-window.selectGrupo = selectGrupo;
-window.goToModo = goToModo;
-window.goToStep1 = goToStep1;
-window.goBackToConfig = goBackToConfig;
-window.addSalida = addSalida;
-window.cambiarSemana = cambiarSemana;
-window.generatePreview = generatePreview;
 window.guardarImagen = guardarImagen;
-window.enviarWhatsapp = enviarWhatsapp;
-window.registrarEnProgreso = registrarEnProgreso;
-window.cerrarSesion = cerrarSesion;
 window.openPin = openPin;
 window.pinPress = pinPress;
 window.pinDelete = pinDelete;
 window.pinCancel = pinCancel;
-window.goToMapa = goToMapa;
-window.closeMapaPopup = closeMapaPopup;
+window.goToCover = goToCover;
+window.goToPin = goToPin;
+window.cerrarSesionEncargado = cerrarSesionEncargado;
+window.goToEncargado = goToEncargado;
+window.goToVerSemana = goToVerSemana;
+window.cambiarSemanaVer = cambiarSemanaVer;
+window.goToBuscarHermano = goToBuscarHermano;
+window.inputFocus = inputFocus;
+window.inputKeydown = inputKeydown;
+window.buscarHermano = buscarHermano;
+window.goToEditar = goToEditar;
+window.cambiarSemanaEdit = cambiarSemanaEdit;
+window.guardarEdicion = guardarEdicion;
+window.goToAutomatico = goToAutomatico;
+window.generarAutomatico = generarAutomatico;
+window.guardarAutomatico = guardarAutomatico;
+window.goToGenerarImagen = goToGenerarImagen;
+window.cambiarSemanaImagen = cambiarSemanaImagen;
+window.guardarImagen = guardarImagen;
+window.goToGestionar = goToGestionar;
+window.filtrarLista = filtrarLista;
+window.abrirNuevoHermano = abrirNuevoHermano;
+window.abrirEditarHermano = abrirEditarHermano;
+window.cerrarModalHermano = cerrarModalHermano;
+window.guardarHermano = guardarHermano;
+window.confirmarEliminar = confirmarEliminar;   
