@@ -4,19 +4,17 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>AppJW — Menú</title>
+  <link rel="icon" type="image/svg+xml" href="favicon.svg">
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
     body {
-      background: #1e1e1e;
-      color: #eee;
-      font-family: system-ui, sans-serif;
       min-height: 100vh;
       display: flex;
-      flex-direction: column;
       align-items: center;
       justify-content: center;
-      padding: 24px;
+      color: #eee;
+      font-family: system-ui, sans-serif;
     }
 
     .back {
@@ -25,70 +23,30 @@
       left: 16px;
       background: none;
       border: none;
-      color: #888;
+      color: #555;
       font-size: 1.4rem;
       cursor: pointer;
       padding: 4px 8px;
+      transition: color .15s;
     }
+    .back:hover { color: #888; }
 
-    .congre-label {
-      font-size: 0.8rem;
-      color: #666;
-      text-transform: uppercase;
-      letter-spacing: 0.08em;
-      margin-bottom: 8px;
-      text-align: center;
-    }
-
-    h1 {
-      font-size: 1.4rem;
-      font-weight: 700;
-      margin-bottom: 40px;
-      text-align: center;
-    }
-
-    #modulos {
+    .wrap {
       display: flex;
       flex-direction: column;
-      gap: 14px;
+      align-items: center;
+      gap: 12px;
       width: 100%;
       max-width: 320px;
+      padding: 2rem 1rem;
     }
 
-    .modulo-card {
-      background: #2a2a2a;
-      border: 1px solid #333;
-      border-radius: 14px;
-      padding: 24px;
-      cursor: pointer;
-      transition: background 0.15s, transform 0.1s;
+    .logo {
       display: flex;
+      flex-direction: column;
       align-items: center;
-      gap: 18px;
-    }
-
-    .modulo-card:active {
-      background: #323232;
-      transform: scale(0.98);
-    }
-
-    .modulo-icon {
-      font-size: 2rem;
-      flex-shrink: 0;
-    }
-
-    .modulo-info { flex: 1; }
-
-    .modulo-titulo {
-      font-size: 1.05rem;
-      font-weight: 600;
-      margin-bottom: 4px;
-    }
-
-    .modulo-desc {
-      font-size: 0.82rem;
-      color: #777;
-      line-height: 1.4;
+      gap: 10px;
+      margin-bottom: 18px;
     }
   </style>
 </head>
@@ -96,40 +54,51 @@
 
   <button class="back" onclick="window.location.href='./index.html'">‹</button>
 
-  <div class="congre-label" id="congre-label">—</div>
-  <h1>¿Qué módulo abrís?</h1>
+  <div class="wrap">
+    <div class="logo">
+      <div class="cs-logo-placeholder"></div>
+      <div class="cs-logo-title" id="congre-titulo">—</div>
+      <div class="cs-logo-sub">Seleccioná un módulo</div>
+    </div>
 
-  <div id="modulos">
-    <div class="modulo-card" onclick="ir('territorios')">
-      <div class="modulo-icon">🗺️</div>
-      <div class="modulo-info">
-        <div class="modulo-titulo">Territorios</div>
-        <div class="modulo-desc">Planificar salidas, registrar trabajo y ver historial</div>
+    <a class="cs-nav-card cs-nav-card-terr" href="territorios/index.html">
+      <div class="cs-nav-icon cs-nav-icon-terr">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
+          <path d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-1.447-.894L15 9m0 8V9m0 0L9 7"
+            stroke="#5DB85D" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
       </div>
-    </div>
-    <div class="modulo-card" onclick="ir('asignaciones')">
-      <div class="modulo-icon">📋</div>
-      <div class="modulo-info">
-        <div class="modulo-titulo">Asignaciones</div>
-        <div class="modulo-desc">Programación de roles para las reuniones</div>
+      <div>
+        <div class="cs-nav-title">Territorios</div>
+        <div class="cs-nav-sub">Planificar y registrar salidas</div>
       </div>
-    </div>
+    </a>
+
+    <a class="cs-nav-card cs-nav-card-asign" href="asignaciones/index.html">
+      <div class="cs-nav-icon cs-nav-icon-asign">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
+          <path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2M9 11a4 4 0 100-8 4 4 0 000 8zM23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75"
+            stroke="#5B8DDE" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      </div>
+      <div>
+        <div class="cs-nav-title">Asignaciones</div>
+        <div class="cs-nav-sub">Acomodadores, sonido y más</div>
+      </div>
+    </a>
+
+    <div class="cs-footer" id="congre-footer"></div>
   </div>
 
+  <script src="ui-utils.js"></script>
   <script>
-    // Verificar que hay una congre seleccionada
     const congreId     = sessionStorage.getItem('congreId');
     const congreNombre = sessionStorage.getItem('congreNombre');
 
-    if (!congreId) {
-      window.location.href = './index.html';
-    }
+    if (!congreId) window.location.href = './index.html';
 
-    document.getElementById('congre-label').textContent = congreNombre || congreId;
-
-    function ir(modulo) {
-      window.location.href = `./${modulo}/index.html`;
-    }
+    document.getElementById('congre-titulo').textContent  = congreNombre || congreId;
+    document.getElementById('congre-footer').textContent  = (congreNombre || congreId) + ' · App interna';
   </script>
 
 </body>
