@@ -372,7 +372,7 @@ function renderTerritories() {
     }
 
     if (_modoParam === 'picker' || urlParams.get('picker') === '1') {
-      const isMainGroup = (t.grupo === _grupoParam);
+      const isMainGroup = String(t.grupo) === String(_grupoParam);
       let c;
       if (isMainGroup) {
         const info = territoriosInfo[baseNum(t.num)] || {};
