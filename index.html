@@ -101,19 +101,33 @@
       padding: 2rem 1rem;
     }
 
+    /* ── Botón volver (fijo arriba-izq) ── */
     .menu-back {
-      align-self: flex-start;
+      position: fixed;
+      top: 16px;
+      left: 16px;
       background: #252525;
-      border: 1px solid rgba(255,255,255,0.15);
+      border: 1px solid rgba(255,255,255,0.13);
       border-radius: 10px;
-      color: #aaa;
+      color: #999;
       font-size: 13px;
       cursor: pointer;
       padding: 7px 13px;
       transition: color .15s, border-color .15s, background .15s;
       font-family: inherit;
+      z-index: 10;
     }
-    .menu-back:hover { color: #eee; border-color: rgba(255,255,255,0.3); background: #2e2e2e; }
+    .menu-back:hover { color: #eee; border-color: rgba(255,255,255,0.28); background: #2e2e2e; }
+
+    /* ── Nombre de congregación con color ── */
+    #menu-titulo {
+      background: linear-gradient(135deg, #e8e8e8 0%, #a0b8f0 60%, #8fa8e0 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      font-weight: 700;
+      letter-spacing: -0.5px;
+    }
 
     /* ── Botón admin ── */
     .btn-admin {
@@ -131,9 +145,10 @@
       display: flex;
       align-items: center;
       justify-content: center;
-      transition: background .15s, border-color .15s, color .15s;
+      transition: background .15s, border-color .15s, color .15s, opacity .2s;
     }
     .btn-admin:hover { background: #252535; border-color: rgba(127,119,221,0.6); color: #a09af0; }
+    .btn-admin.hidden { opacity: 0; pointer-events: none; }
   </style>
 </head>
 <body>
@@ -215,6 +230,14 @@
       { bg: 'rgba(216,90,48,0.18)',   border: 'rgba(216,90,48,0.35)',   color: '#D85A30' },
     ];
 
+    const STOP = new Set(['congregacion','congregación','de','del','la','el','las','los']);
+    function iniciales(nombre) {
+      const words = nombre.normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().split(/\s+/);
+      const meaningful = words.filter(w => !STOP.has(w));
+      const src = meaningful.length ? meaningful : words;
+      return src.slice(0,2).map(w => w.charAt(0).toUpperCase()).join('');
+    }
+
     function colorPara(id) {
       let h = 0;
       for (let i = 0; i < id.length; i++) h = (h * 31 + id.charCodeAt(i)) & 0xffff;
@@ -230,15 +253,19 @@
       el.style.animation = '';
     }
 
+    const btnAdmin = document.querySelector('.btn-admin');
+
     function mostrarMenu(nombre) {
       document.getElementById('menu-titulo').textContent = nombre;
       document.getElementById('menu-footer').textContent = nombre + ' · App interna';
+      btnAdmin.classList.add('hidden');
       showView('view-menu');
     }
 
     window.volverACongres = function() {
       sessionStorage.removeItem('congreId');
       sessionStorage.removeItem('congreNombre');
+      btnAdmin.classList.remove('hidden');
       showView('view-congres');
     };
 
@@ -255,7 +282,7 @@
           const data    = doc.data();
           const id      = doc.id;
           const nombre  = data.nombre || id;
-          const inicial = nombre.charAt(0).toUpperCase();
+          const inicial = iniciales(nombre);
           const c       = colorPara(id);
 
           const card = document.createElement('button');
