@@ -744,7 +744,7 @@ function openMapaPicker(salidaId) {
   const title  = document.getElementById('mapa-popup-title');
   const grupoLabel = selectedGrupo === 'C' ? 'Congregación' : 'Grupo ' + selectedGrupo;
   title.textContent = `Elegir territorio — ${grupoLabel}`;
-  iframe.src = `mapa.html?grupo=${selectedGrupo}&modo=info&salidaid=${salidaId}&picker=1`;
+  iframe.src = `mapa.html?grupo=${selectedGrupo}&modo=picker&salidaid=${salidaId}&picker=1`;
   popup.style.display = 'flex';
   document.body.style.overflow = 'hidden';
 }
@@ -1434,4 +1434,4 @@ window.cancelEdit = cancelEdit;
 window.saveEdit = saveEdit;
 window.deleteEntry = deleteEntry; 
 window.deleteHistorialDoc = deleteHistorialDoc;
-window.openMapaPicker = openMapaPopup;
+window.openMapaPicker = openMapaPicker;
