@@ -55,6 +55,18 @@
     .btn-add-grupo { background: none; border: 1px dashed #444; border-radius: 10px; color: #666; font-size: 13px; padding: 10px; width: 100%; cursor: pointer; margin-top: 4px; }
     .btn-add-grupo:hover { border-color: #7F77DD; color: #aaa; }
 
+    /* Territorios */
+    .terr-row { display:flex; align-items:center; gap:10px; padding:9px 12px; background:#2a2a2a; border-radius:10px; margin-bottom:6px; border:1.5px solid transparent; transition:.15s; }
+    .terr-row.changed { border-color:#7F77DD66; }
+    .terr-num  { font-size:14px; font-weight:700; min-width:32px; color:#eee; }
+    .terr-g-btns { display:flex; gap:5px; flex-wrap:wrap; flex:1; }
+    .terr-g-btn  { border:1.5px solid; border-radius:6px; padding:4px 8px; font-size:11px; font-weight:700; cursor:pointer; background:transparent; color:#888; transition:.1s; }
+    .terr-g-btn.sel { color:#fff; }
+    .terr-g-btn:active { opacity:.7; }
+    .terr-filtro-btn { border:1.5px solid #444; border-radius:8px; padding:6px 12px; font-size:12px; font-weight:600; cursor:pointer; background:transparent; color:#888; transition:.1s; }
+    .terr-filtro-btn.active { color:#fff; }
+    .save-bar { position:sticky; bottom:16px; margin-top:12px; }
+
     /* Dashboard */
     .congre-item { display: flex; align-items: center; gap: 10px; background: #2a2a2a; border-radius: 10px; padding: 12px 14px; margin-bottom: 8px; }
     .congre-nombre { font-size: 15px; font-weight: 600; }
@@ -129,11 +141,16 @@
 
     <!-- Paso 1: Datos básicos -->
     <div id="step-0">
-      <p class="section-title">Nueva congregación</p>
-      <p class="section-sub">Paso 1 de 3 · Datos básicos</p>
+      <p class="section-title" id="step0-title">Nueva congregación</p>
+      <p class="section-sub" id="step0-sub">Paso 1 de 3 · Datos básicos</p>
       <div class="field">
         <label>Nombre</label>
-        <input type="text" id="w-nombre" placeholder="Ej: Congregación Norte" autocomplete="off">
+        <input type="text" id="w-nombre" placeholder="Ej: Congregación Norte" autocomplete="off" oninput="onNombreInput()">
+      </div>
+      <div class="field" id="field-id">
+        <label>ID único</label>
+        <input type="text" id="w-id" placeholder="ej: norte" autocomplete="off" oninput="onIdInput()" style="font-family:monospace;">
+        <div style="font-size:11px;color:#555;margin-top:4px;">Solo minúsculas, números y guiones. No se puede cambiar después.</div>
       </div>
       <div class="field">
         <label>PIN del encargado de asignaciones</label>
@@ -173,6 +190,21 @@
         <button class="btn-primary" id="btn-crear" onclick="crearCongregacion(false)" style="flex:2;" disabled>Crear →</button>
       </div>
       <div id="wizard-status"></div>
+    </div>
+  </div>
+
+  <!-- ── TERRITORIOS ── -->
+  <div id="view-territorios" class="app" style="display:none">
+    <a href="#" onclick="showView('view-dashboard');return false;" style="display:inline-block;font-size:13px;color:#555;text-decoration:none;margin-bottom:20px;">← Volver</a>
+    <p class="section-title" id="terr-title"></p>
+    <p class="section-sub">Asignación de grupos · tocá un grupo para asignar</p>
+    <div id="terr-filtros" style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:14px;"></div>
+    <div id="terr-loading" class="loading-wrap"><div class="spinner"></div><div>Cargando...</div></div>
+    <div id="terr-list"></div>
+    <div class="save-bar" id="terr-save-bar" style="display:none;">
+      <button class="btn-primary" onclick="saveTerritorios()">
+        Guardar <span id="terr-changes-count">0</span> cambios
+      </button>
     </div>
   </div>
 

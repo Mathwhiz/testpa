@@ -1,6 +1,6 @@
 import { db } from './firebase.js';
 import {
-  collection, doc, getDoc, getDocs, addDoc, updateDoc, deleteDoc, writeBatch, Timestamp
+  collection, doc, getDoc, getDocs, addDoc, setDoc, updateDoc, deleteDoc, writeBatch, Timestamp
 } from "https://www.gstatic.com/firebasejs/11.6.0/firebase-firestore.js";
 
 // ── Super-admin PIN ──
@@ -65,9 +65,28 @@ function checkPin() {
 //   NAVEGACIÓN
 // ─────────────────────────────────────────
 function showView(id) {
-  ['view-pin', 'view-dashboard', 'view-wizard'].forEach(v => {
+  ['view-pin', 'view-dashboard', 'view-wizard', 'view-territorios'].forEach(v => {
     document.getElementById(v).style.display = v === id ? '' : 'none';
   });
+}
+
+function slugify(str) {
+  return str.toLowerCase()
+    .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '');
+}
+
+let userEditedId = false;
+function onNombreInput() {
+  if (!userEditedId) {
+    document.getElementById('w-id').value = slugify(document.getElementById('w-nombre').value);
+  }
+}
+function onIdInput() {
+  userEditedId = true;
+  const el = document.getElementById('w-id');
+  el.value = el.value.toLowerCase().replace(/[^a-z0-9-]/g, '');
 }
 
 // ─────────────────────────────────────────
@@ -97,6 +116,7 @@ async function loadDashboard() {
               <div class="congre-meta">${d.id} · ${fecha}</div>
             </div>
             <div style="display:flex;gap:6px;flex-shrink:0;">
+              <button class="btn-card-action" onclick="openTerritorios('${d.id}','${nombreSafe}')" title="Territorios">📍</button>
               <button class="btn-card-action" onclick="editCongre('${d.id}')" title="Editar">✏️</button>
               <button class="btn-card-action btn-card-delete" onclick="deleteCongre('${d.id}','${nombreSafe}')" title="Eliminar">🗑️</button>
             </div>
@@ -163,19 +183,24 @@ function removeGrupo(idx) {
 }
 
 function startWizard(prefill = null) {
-  wizardStep      = 0;
-  kmlTerritories  = null;
+  wizardStep     = 0;
+  kmlTerritories = null;
+  userEditedId   = false;
   if (!prefill) editingCongreId = null;
   wizardGrupos   = prefill?.grupos?.map(g => ({ ...g })) ?? GRUPOS_DEFAULT.map(g => ({ ...g }));
 
+  const isEdit = !!editingCongreId;
   document.getElementById('w-nombre').value  = prefill?.nombre       || '';
+  document.getElementById('w-id').value      = isEdit ? editingCongreId : '';
   document.getElementById('w-pin').value     = prefill?.pinEncargado || '';
   document.getElementById('kml-input').value = '';
-  document.getElementById('kml-preview').style.display = 'none';
-  // En modo edición el KML es opcional → habilitamos el botón de guardar por defecto
-  document.getElementById('btn-crear').disabled = !editingCongreId;
-  document.getElementById('btn-crear').textContent = editingCongreId ? 'Guardar →' : 'Crear →';
-  document.getElementById('wizard-status').textContent = '';
+  document.getElementById('kml-preview').style.display  = 'none';
+  document.getElementById('btn-crear').disabled          = !isEdit;
+  document.getElementById('btn-crear').textContent       = isEdit ? 'Guardar →' : 'Crear →';
+  document.getElementById('wizard-status').textContent   = '';
+  document.getElementById('field-id').style.display      = isEdit ? 'none' : '';
+  document.getElementById('step0-title').textContent     = isEdit ? 'Editar congregación' : 'Nueva congregación';
+  document.getElementById('step0-sub').textContent       = isEdit ? 'Editando datos básicos' : 'Paso 1 de 3 · Datos básicos';
 
   renderGruposConfig();
   showWizardStep(0);
@@ -243,9 +268,15 @@ function showWizardStep(step) {
 function wizardNext() {
   if (wizardStep === 0) {
     const nombre = document.getElementById('w-nombre').value.trim();
+    const id     = document.getElementById('w-id').value.trim();
     const pin    = document.getElementById('w-pin').value.trim();
-    if (!nombre)             { uiAlert('Ingresá el nombre de la congregación.'); return; }
-    if (!/^\d{4}$/.test(pin)) { uiAlert('El PIN del encargado debe ser 4 dígitos numéricos.'); return; }
+    if (!nombre)                        { uiAlert('Ingresá el nombre de la congregación.'); return; }
+    if (!editingCongreId && !id)        { uiAlert('Ingresá un ID para la congregación.'); return; }
+    if (!editingCongreId && !/^[a-z0-9][a-z0-9-]*$/.test(id)) {
+      uiAlert('El ID solo puede tener minúsculas, números y guiones, y debe empezar con una letra o número.');
+      return;
+    }
+    if (!/^\d{4}$/.test(pin))           { uiAlert('El PIN del encargado debe ser 4 dígitos numéricos.'); return; }
   }
   if (wizardStep === 1) {
     syncGruposFromDOM();
@@ -377,12 +408,18 @@ async function crearCongregacion(skipKml) {
       await delBatch.commit();
     } else {
       // ── MODO CREACIÓN ──
-      const congreRef = await addDoc(collection(db, 'congregaciones'), {
+      congreId = document.getElementById('w-id').value.trim();
+      const existing = await getDoc(doc(db, 'congregaciones', congreId));
+      if (existing.exists()) {
+        uiLoading.hide();
+        await uiAlert(`Ya existe una congregación con el ID "${congreId}".`);
+        return;
+      }
+      await setDoc(doc(db, 'congregaciones', congreId), {
         nombre,
         pinEncargado,
         creadoEn: Timestamp.now(),
       });
-      congreId = congreRef.id;
     }
 
     // Grupos en batch
@@ -425,10 +462,167 @@ async function crearCongregacion(skipKml) {
   }
 }
 
+// ─────────────────────────────────────────
+//   TERRITORIOS
+// ─────────────────────────────────────────
+let terrCongreId = null;
+let terrData     = [];
+let terrGrupos   = [];
+let terrChanges  = {};
+let terrFiltro   = null; // null=todos, '__none__'=sin grupo, o grupoId
+
+async function openTerritorios(id, nombre) {
+  terrCongreId = id;
+  terrChanges  = {};
+  terrFiltro   = null;
+  document.getElementById('terr-title').textContent = nombre;
+  showView('view-territorios');
+
+  const loading = document.getElementById('terr-loading');
+  document.getElementById('terr-list').innerHTML = '';
+  document.getElementById('terr-save-bar').style.display = 'none';
+  loading.style.display = 'flex';
+
+  try {
+    const [terrSnap, gruposSnap] = await Promise.all([
+      getDocs(collection(db, 'congregaciones', id, 'territorios')),
+      getDocs(collection(db, 'congregaciones', id, 'grupos')),
+    ]);
+    terrData = [];
+    terrSnap.forEach(d => terrData.push({ ...d.data(), _docId: d.id }));
+    terrData.sort((a, b) => (parseInt(a.id) || 0) - (parseInt(b.id) || 0));
+
+    terrGrupos = [];
+    gruposSnap.forEach(d => terrGrupos.push(d.data()));
+    terrGrupos.sort((a, b) => String(a.id) < String(b.id) ? -1 : 1);
+
+    loading.style.display = 'none';
+    renderTerrFiltros();
+    renderTerrList();
+  } catch(e) {
+    loading.innerHTML = `<span class="status-err">Error: ${e.message}</span>`;
+  }
+}
+
+function renderTerrFiltros() {
+  const filtros = [
+    { id: null,       label: 'Todos',     color: '#555' },
+    { id: '__none__', label: 'Sin grupo', color: '#444' },
+    ...terrGrupos,
+  ];
+  document.getElementById('terr-filtros').innerHTML = filtros.map(f => {
+    const active = terrFiltro === f.id;
+    return `<button class="terr-filtro-btn ${active ? 'active' : ''}"
+      style="border-color:${f.color};${active ? `background:${f.color};` : `color:${f.color};`}"
+      onclick="setTerrFiltro(${f.id === null ? 'null' : `'${f.id}'`})">${f.label}</button>`;
+  }).join('');
+}
+
+function setTerrFiltro(f) {
+  terrFiltro = f;
+  renderTerrFiltros();
+  renderTerrList();
+}
+
+function renderTerrList() {
+  let lista = terrData;
+  if (terrFiltro === '__none__') {
+    lista = terrData.filter(t => !(terrChanges[t._docId] ?? t.grupoId));
+  } else if (terrFiltro !== null) {
+    lista = terrData.filter(t => (terrChanges[t._docId] ?? t.grupoId) === terrFiltro);
+  }
+
+  const noBtn = `<button class="terr-g-btn" data-grupo="" style="border-color:#555;"
+    onclick="assignGrupo('{ID}','')">—</button>`;
+
+  document.getElementById('terr-list').innerHTML = lista.length === 0
+    ? '<p style="color:#666;font-size:14px;text-align:center;padding:20px 0;">Sin territorios en este filtro.</p>'
+    : lista.map(t => {
+        const cur     = terrChanges[t._docId] ?? t.grupoId ?? '';
+        const changed = t._docId in terrChanges;
+        const btns = [
+          ...terrGrupos.map(g => {
+            const sel = cur === g.id;
+            return `<button class="terr-g-btn${sel ? ' sel' : ''}" data-grupo="${g.id}"
+              style="border-color:${g.color};${sel ? `background:${g.color};` : ''}"
+              onclick="assignGrupo('${t._docId}','${g.id}')">${g.label.replace(/^Grupo\s*/i,'').substring(0,5)}</button>`;
+          }),
+          `<button class="terr-g-btn${!cur ? ' sel' : ''}" data-grupo=""
+            style="border-color:#555;${!cur ? 'background:#555;' : ''}"
+            onclick="assignGrupo('${t._docId}','')">—</button>`,
+        ].join('');
+        return `<div class="terr-row${changed ? ' changed' : ''}" id="terr-row-${t._docId}">
+          <span class="terr-num">${t.id}</span>
+          <div class="terr-g-btns">${btns}</div>
+        </div>`;
+      }).join('');
+}
+
+function assignGrupo(docId, grupoId) {
+  const terr = terrData.find(t => t._docId === docId);
+  if (!terr) return;
+
+  const original = terr.grupoId ?? '';
+  if (grupoId === original) delete terrChanges[docId];
+  else terrChanges[docId] = grupoId;
+
+  const cur     = terrChanges[docId] ?? original;
+  const changed = docId in terrChanges;
+  const row = document.getElementById(`terr-row-${docId}`);
+  if (row) {
+    row.classList.toggle('changed', changed);
+    row.querySelectorAll('.terr-g-btn').forEach(btn => {
+      const bg = btn.dataset.grupo;
+      const g  = terrGrupos.find(x => x.id === bg);
+      const sel = bg === cur || (!bg && !cur);
+      btn.classList.toggle('sel', sel);
+      btn.style.background = sel ? (g ? g.color : '#555') : '';
+    });
+  }
+  updateTerrSaveBar();
+}
+
+function updateTerrSaveBar() {
+  const n = Object.keys(terrChanges).length;
+  document.getElementById('terr-changes-count').textContent = n;
+  document.getElementById('terr-save-bar').style.display = n > 0 ? '' : 'none';
+}
+
+async function saveTerritorios() {
+  const entries = Object.entries(terrChanges);
+  if (!entries.length) return;
+  uiLoading.show(`Guardando ${entries.length} territorios...`);
+  try {
+    for (let i = 0; i < entries.length; i += 400) {
+      const batch = writeBatch(db);
+      entries.slice(i, i + 400).forEach(([docId, grupoId]) => {
+        batch.update(doc(db, 'congregaciones', terrCongreId, 'territorios', docId), {
+          grupoId: grupoId || null,
+        });
+      });
+      await batch.commit();
+    }
+    entries.forEach(([docId, grupoId]) => {
+      const t = terrData.find(x => x._docId === docId);
+      if (t) t.grupoId = grupoId || null;
+    });
+    terrChanges = {};
+    uiLoading.hide();
+    updateTerrSaveBar();
+    renderTerrList();
+    uiToast(`${entries.length} territorios guardados`, 'success');
+  } catch(e) {
+    uiLoading.hide();
+    await uiAlert('Error al guardar: ' + e.message);
+  }
+}
+
 // ── Exponer al HTML ──
 window.pinPress          = pinPress;
 window.pinDelete         = pinDelete;
 window.showView          = showView;
+window.onNombreInput     = onNombreInput;
+window.onIdInput         = onIdInput;
 window.startWizard       = startWizard;
 window.editCongre        = editCongre;
 window.deleteCongre      = deleteCongre;
@@ -438,3 +632,7 @@ window.addGrupo          = addGrupo;
 window.removeGrupo       = removeGrupo;
 window.onKmlFile         = onKmlFile;
 window.crearCongregacion = crearCongregacion;
+window.openTerritorios   = openTerritorios;
+window.setTerrFiltro     = setTerrFiltro;
+window.assignGrupo       = assignGrupo;
+window.saveTerritorios   = saveTerritorios;
