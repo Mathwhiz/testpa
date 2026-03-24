@@ -19,17 +19,22 @@
 
     .back {
       position: fixed;
-      top: 16px;
-      left: 16px;
-      background: none;
-      border: none;
-      color: #555;
-      font-size: 1.4rem;
+      top: 14px;
+      left: 14px;
+      background: #252525;
+      border: 1px solid rgba(255,255,255,0.15);
+      border-radius: 12px;
+      color: #aaa;
+      font-size: 1.3rem;
       cursor: pointer;
-      padding: 4px 8px;
-      transition: color .15s;
+      width: 40px;
+      height: 40px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: color .15s, border-color .15s, background .15s;
     }
-    .back:hover { color: #888; }
+    .back:hover { color: #eee; border-color: rgba(255,255,255,0.3); background: #2e2e2e; }
 
     .wrap {
       display: flex;

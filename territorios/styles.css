@@ -243,7 +243,7 @@ table.preview tr.tel-row td:first-child { border-left: 3px solid #1D9E75; }
 .pin-cancel { font-size: 13px; color: #888; background: none; border: none; cursor: pointer; margin-top: 10px; text-decoration: underline; }
 
 /* ── Botón home ── */
-.btn-home { position: fixed; top: 14px; right: 14px; width: 80px; height: 80px; border-radius: 16px; border: 0.5px solid #555; background: #2a2a2a; color: #aaa; cursor: pointer; display: none; align-items: center; justify-content: center; z-index: 50; transition: background 0.15s, color 0.15s; }
+.btn-home { position: fixed; top: 14px; right: 14px; width: 80px; height: 80px; border-radius: 16px; border: 1px solid rgba(255,255,255,0.2); background: #2a2a2a; color: #ccc; cursor: pointer; display: none; align-items: center; justify-content: center; z-index: 50; transition: background 0.15s, color 0.15s, border-color 0.15s; }
 .btn-home:hover { background: #333; color: #eee; }
 .btn-home.visible { display: flex; }
 .btn-home.hidden-in-plan { display: none !important; }

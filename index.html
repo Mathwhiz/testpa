@@ -76,7 +76,7 @@
     }
 
     .congre-info { flex: 1; }
-    .congre-nombre { font-size: 17px; font-weight: 600; color: #e8e8e8; margin-bottom: 2px; }
+    .congre-nombre { font-size: 17px; font-weight: 600; color: #e8e8e8; margin-bottom: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
     .congre-id { font-size: 13px; color: #666; }
     .congre-arrow { color: #444; font-size: 1.3rem; }
 
@@ -87,18 +87,20 @@
       position: fixed;
       bottom: 20px;
       right: 20px;
-      background: #232628;
-      border: 1px solid #2e3033;
-      border-radius: 10px;
-      padding: 8px 14px;
-      color: #555;
-      font-size: 12px;
+      width: 44px;
+      height: 44px;
+      background: #1e1e2e;
+      border: 1px solid rgba(127,119,221,0.35);
+      border-radius: 12px;
+      color: #7F77DD;
       cursor: pointer;
       text-decoration: none;
-      transition: color .15s, border-color .15s;
-      font-family: inherit;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: background .15s, border-color .15s, color .15s;
     }
-    .btn-admin:hover { color: #888; border-color: #444; }
+    .btn-admin:hover { background: #252535; border-color: rgba(127,119,221,0.6); color: #a09af0; }
   </style>
 </head>
 <body>
@@ -106,7 +108,7 @@
   <div class="wrap">
     <div class="logo">
       <div class="cs-logo-placeholder"></div>
-      <div class="cs-logo-title">Territory App</div>
+      <div class="cs-logo-title">AppJW</div>
       <div class="cs-logo-sub">Seleccioná tu congregación</div>
     </div>
 
@@ -117,7 +119,12 @@
     <div class="cs-footer">Territory App · Sistema interno</div>
   </div>
 
-  <a href="admin.html" class="btn-admin">Admin</a>
+  <a href="admin.html" class="btn-admin" title="Admin">
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+      <circle cx="12" cy="12" r="3" stroke="currentColor" stroke-width="1.8"/>
+      <path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+    </svg>
+  </a>
 
   <script src="ui-utils.js"></script>
   <script type="module">
