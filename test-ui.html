@@ -1,0 +1,386 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>UI Sandbox — Territory App</title>
+  <link rel="icon" type="image/svg+xml" href="favicon.svg">
+
+  <!-- Open Props -->
+  <link rel="stylesheet" href="https://unpkg.com/open-props"/>
+
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg:        #1a1c1f;
+      --surface:   #232628;
+      --surface-2: #2a2d30;
+      --border:    #2e3033;
+      --border-2:  #3a3d42;
+      --text:      #e8e8e8;
+      --text-2:    #999;
+      --text-3:    #555;
+      --accent:    #7F77DD;
+      --green:     #5DB85D;
+      --blue:      #5B8DDE;
+    }
+
+    body {
+      background: var(--bg);
+      background-image:
+        radial-gradient(ellipse at 60% 10%, rgba(46,134,193,0.06) 0%, transparent 60%),
+        radial-gradient(ellipse at 20% 80%, rgba(127,119,221,0.05) 0%, transparent 50%);
+      color: var(--text);
+      font-family: system-ui, sans-serif;
+      min-height: 100vh;
+      padding: var(--size-8) var(--size-4);
+    }
+
+    /* ── Layout ── */
+    .page-title {
+      font-size: var(--font-size-3);
+      font-weight: var(--font-weight-7);
+      color: var(--text-3);
+      text-transform: uppercase;
+      letter-spacing: var(--font-letterspacing-4);
+      margin-bottom: var(--size-10);
+      text-align: center;
+    }
+
+    .sections {
+      display: flex;
+      flex-direction: column;
+      gap: var(--size-10);
+      max-width: 400px;
+      margin: 0 auto;
+    }
+
+    .section-label {
+      font-size: var(--font-size-0);
+      font-weight: var(--font-weight-7);
+      color: var(--text-3);
+      text-transform: uppercase;
+      letter-spacing: var(--font-letterspacing-3);
+      margin-bottom: var(--size-3);
+    }
+
+    /* ── Cover (pantalla inicial) ── */
+    .cover {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: var(--size-3);
+      padding: var(--size-6) 0;
+    }
+
+    .cover-logo {
+      margin-bottom: var(--size-2);
+    }
+
+    .cover-title {
+      font-size: var(--font-size-6);
+      font-weight: var(--font-weight-9);
+      letter-spacing: var(--font-letterspacing-0);
+      color: var(--text);
+      text-align: center;
+    }
+
+    .cover-sub {
+      font-size: var(--font-size-1);
+      color: var(--text-3);
+      text-align: center;
+    }
+
+    /* ── Nav cards ── */
+    .nav-card {
+      width: 100%;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-3);
+      padding: var(--size-4) var(--size-5);
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: var(--size-4);
+      transition:
+        border-color var(--animation-fade-in),
+        background var(--animation-fade-in),
+        transform 0.1s,
+        box-shadow var(--animation-fade-in);
+      text-decoration: none;
+      color: inherit;
+      box-shadow: var(--shadow-2);
+      outline: none;
+      font-family: inherit;
+    }
+    .nav-card:hover {
+      transform: translateY(-1px);
+      box-shadow: var(--shadow-4);
+    }
+    .nav-card:active { transform: scale(0.98); box-shadow: var(--shadow-1); }
+
+    .nav-card-terr:hover  { border-color: #3a6b3a; background: #242826; }
+    .nav-card-asign:hover { border-color: #2e4070; background: #23252e; }
+    .nav-card-congre:hover { border-color: var(--border-2); background: #272a2d; }
+
+    .nav-icon {
+      width: var(--size-11);
+      height: var(--size-11);
+      border-radius: var(--radius-2);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      font-size: var(--font-size-4);
+    }
+    .nav-icon-terr  { background: #1a3a1a; }
+    .nav-icon-asign { background: #1a2340; }
+    .nav-icon-congre { background: #1a2030; }
+
+    .nav-card-title { font-size: var(--font-size-2); font-weight: var(--font-weight-6); color: var(--text); margin-bottom: 2px; }
+    .nav-card-sub   { font-size: var(--font-size-0); color: var(--text-3); }
+
+    .nav-arrow { color: var(--text-3); font-size: var(--font-size-3); margin-left: auto; flex-shrink: 0; }
+
+    /* ── Buttons ── */
+    .btn {
+      width: 100%;
+      padding: var(--size-3) var(--size-5);
+      font-size: var(--font-size-1);
+      font-weight: var(--font-weight-6);
+      border-radius: var(--radius-2);
+      border: none;
+      cursor: pointer;
+      transition: filter 0.1s, transform 0.1s;
+      font-family: inherit;
+    }
+    .btn:active { transform: scale(0.97); }
+    .btn-primary   { background: var(--accent); color: #fff; }
+    .btn-primary:hover { filter: brightness(1.1); }
+    .btn-secondary { background: var(--surface-2); color: var(--text-2); border: 1px solid var(--border-2); }
+    .btn-secondary:hover { filter: brightness(1.15); }
+    .btn-danger    { background: #A32D2D; color: #F09595; }
+    .btn-danger:hover { filter: brightness(1.1); }
+    .btn-row { display: flex; gap: var(--size-2); }
+
+    /* ── PIN pad ── */
+    .pin-wrap {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: var(--size-5);
+    }
+    .pin-dots { display: flex; gap: var(--size-3); }
+    .pin-dot  {
+      width: var(--size-4); height: var(--size-4);
+      border-radius: var(--radius-round);
+      border: 2px solid var(--border-2);
+      background: transparent;
+      transition: .15s;
+    }
+    .pin-dot.filled { background: var(--accent); border-color: var(--accent); }
+    .pin-grid {
+      display: grid;
+      grid-template-columns: repeat(3, var(--size-14));
+      gap: var(--size-2);
+    }
+    .pin-btn {
+      background: var(--surface-2);
+      border: none;
+      border-radius: var(--radius-2);
+      width: var(--size-14);
+      height: var(--size-14);
+      font-size: var(--font-size-5);
+      color: var(--text);
+      cursor: pointer;
+      transition: background 0.1s, transform 0.08s;
+      font-family: inherit;
+    }
+    .pin-btn:hover  { background: var(--surface-2); filter: brightness(1.2); }
+    .pin-btn:active { transform: scale(0.91); }
+
+    /* ── Cards de congregación ── */
+    .congre-id-label {
+      font-size: var(--font-size-00);
+      color: var(--text-3);
+      text-transform: uppercase;
+      letter-spacing: var(--font-letterspacing-3);
+    }
+
+    /* ── Footer ── */
+    .footer {
+      font-size: var(--font-size-00);
+      color: #333;
+      text-align: center;
+      margin-top: var(--size-2);
+    }
+
+    /* ── Divider ── */
+    .divider {
+      height: 1px;
+      background: var(--border);
+      margin: var(--size-6) 0;
+    }
+
+    /* ── Tag ── */
+    .tag {
+      display: inline-block;
+      background: rgba(127,119,221,0.12);
+      color: var(--accent);
+      border: 1px solid rgba(127,119,221,0.25);
+      border-radius: var(--radius-round);
+      padding: 3px 10px;
+      font-size: var(--font-size-00);
+      font-weight: var(--font-weight-6);
+    }
+  </style>
+</head>
+<body>
+
+  <p class="page-title">UI Sandbox</p>
+
+  <div class="sections">
+
+    <!-- ── PANTALLA INICIO ── -->
+    <div>
+      <div class="section-label">Pantalla inicio (index)</div>
+      <div class="cover">
+        <div class="cover-logo" id="logo-placeholder-1"></div>
+        <div class="cover-title">Territory App</div>
+        <div class="cover-sub">Seleccioná tu congregación</div>
+      </div>
+
+      <div style="display:flex;flex-direction:column;gap:10px;">
+        <button class="nav-card nav-card-congre">
+          <div class="nav-icon nav-icon-congre">🏠</div>
+          <div>
+            <div class="nav-card-title">Congregación Sur</div>
+            <div class="congre-id-label">sur</div>
+          </div>
+          <div class="nav-arrow">›</div>
+        </button>
+        <button class="nav-card nav-card-congre">
+          <div class="nav-icon nav-icon-congre">🏡</div>
+          <div>
+            <div class="nav-card-title">Congregación Norte</div>
+            <div class="congre-id-label">norte</div>
+          </div>
+          <div class="nav-arrow">›</div>
+        </button>
+      </div>
+
+      <div class="footer" style="margin-top:16px;">Territory App · Sistema interno</div>
+    </div>
+
+    <div class="divider"></div>
+
+    <!-- ── MENÚ MÓDULOS ── -->
+    <div>
+      <div class="section-label">Selector de módulo (menu)</div>
+      <div class="cover">
+        <div class="cover-logo" id="logo-placeholder-2"></div>
+        <div class="cover-title">Congregación Sur</div>
+        <div class="cover-sub">Seleccioná un módulo</div>
+      </div>
+
+      <div style="display:flex;flex-direction:column;gap:10px;">
+        <button class="nav-card nav-card-terr">
+          <div class="nav-icon nav-icon-terr">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
+              <path d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-1.447-.894L15 9m0 8V9m0 0L9 7"
+                stroke="#5DB85D" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </div>
+          <div>
+            <div class="nav-card-title">Territorios</div>
+            <div class="nav-card-sub">Planificar y registrar salidas</div>
+          </div>
+        </button>
+        <button class="nav-card nav-card-asign">
+          <div class="nav-icon nav-icon-asign">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
+              <path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2M9 11a4 4 0 100-8 4 4 0 000 8zM23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75"
+                stroke="#5B8DDE" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </div>
+          <div>
+            <div class="nav-card-title">Asignaciones</div>
+            <div class="nav-card-sub">Acomodadores, sonido y más</div>
+          </div>
+        </button>
+      </div>
+    </div>
+
+    <div class="divider"></div>
+
+    <!-- ── PIN ── -->
+    <div>
+      <div class="section-label">PIN pad (admin)</div>
+      <div class="pin-wrap" style="padding: 16px 0;">
+        <div id="logo-placeholder-3"></div>
+        <div style="font-size:22px;font-weight:700;color:var(--accent);">Admin</div>
+        <div class="pin-dots">
+          <div class="pin-dot filled"></div>
+          <div class="pin-dot filled"></div>
+          <div class="pin-dot"></div>
+          <div class="pin-dot"></div>
+        </div>
+        <div class="pin-grid">
+          <button class="pin-btn">1</button>
+          <button class="pin-btn">2</button>
+          <button class="pin-btn">3</button>
+          <button class="pin-btn">4</button>
+          <button class="pin-btn">5</button>
+          <button class="pin-btn">6</button>
+          <button class="pin-btn">7</button>
+          <button class="pin-btn">8</button>
+          <button class="pin-btn">9</button>
+          <button class="pin-btn" style="font-size:16px;">⌫</button>
+          <button class="pin-btn">0</button>
+          <button class="pin-btn" style="opacity:0;cursor:default;"></button>
+        </div>
+      </div>
+    </div>
+
+    <div class="divider"></div>
+
+    <!-- ── BOTONES ── -->
+    <div>
+      <div class="section-label">Botones</div>
+      <div style="display:flex;flex-direction:column;gap:10px;margin-top:12px;">
+        <button class="btn btn-primary">Guardar cambios</button>
+        <div class="btn-row">
+          <button class="btn btn-secondary">Cancelar</button>
+          <button class="btn btn-primary">Confirmar</button>
+        </div>
+        <button class="btn btn-danger">Eliminar congregación</button>
+      </div>
+    </div>
+
+    <div class="divider"></div>
+
+    <!-- ── TAGS / BADGES ── -->
+    <div>
+      <div class="section-label">Tags</div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:12px;">
+        <span class="tag">Normal</span>
+        <span class="tag" style="background:rgba(93,184,93,0.1);color:#5DB85D;border-color:rgba(93,184,93,0.25);">En progreso</span>
+        <span class="tag" style="background:rgba(240,149,149,0.1);color:#F09595;border-color:rgba(240,149,149,0.25);">Peligroso</span>
+      </div>
+    </div>
+
+    <div style="height: var(--size-10);"></div>
+
+  </div>
+
+  <script src="ui-utils.js"></script>
+  <script>
+    // Insertar logo en los 3 placeholders
+    document.querySelectorAll('[id^="logo-placeholder"]').forEach(el => {
+      el.innerHTML = CS_LOGO_SVG;
+    });
+  </script>
+
+</body>
+</html>
