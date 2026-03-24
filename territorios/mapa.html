@@ -256,7 +256,7 @@ async function initMap() {
     document.querySelector('.map-header').style.display = 'none';
     document.querySelector('.map-filters').style.display = 'none';
   }
-  if (_modoParam === 'picker' || urlParams.get('picker') === '1') {
+  if (_modoParam === 'picker' || _params.get('picker') === '1') {
     document.getElementById('picker-bar').classList.add('visible');
     document.querySelector('.map-filters').style.display = 'none';
     document.querySelector('.map-header').style.display = 'none';
@@ -277,7 +277,7 @@ async function initMap() {
 
   renderTerritories();
 
-  if (_modoParam === 'picker' || urlParams.get('picker') === '1') {
+  if (_modoParam === 'picker' || _params.get('picker') === '1') {
     applyPickerFilter(_grupoParam);
   } else if (_grupoParam !== 'all') {
     filterGroup(_grupoParam);
@@ -371,7 +371,7 @@ function renderTerritories() {
       return;
     }
 
-    if (_modoParam === 'picker' || urlParams.get('picker') === '1') {
+    if (_modoParam === 'picker' || _params.get('picker') === '1') {
       const isMainGroup = String(t.grupo) === String(_grupoParam);
       let c;
       if (isMainGroup) {
@@ -524,7 +524,7 @@ function openPopup(layer, numero, grupo) {
 
 // ── handleBack ──
 window.handleBack = function() {
-  if (_modoParam === 'picker' || urlParams.get('picker') === '1') {
+  if (_modoParam === 'picker' || _params.get('picker') === '1') {
     const msg = { type: 'picker-cancel', salidaId: _salidaId };
     if (window.parent && window.parent !== window) window.parent.postMessage(msg, '*');
     else if (window.opener) window.opener.postMessage(msg, '*');
