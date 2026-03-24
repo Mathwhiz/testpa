@@ -119,27 +119,57 @@ const GRUPOS_DEFAULT = [
 
 let wizardStep     = 0;
 let kmlTerritories = null;
+let wizardGrupos   = [];
+
+function renderGruposConfig() {
+  const gc = document.getElementById('grupos-config');
+  gc.innerHTML = wizardGrupos.map((g, i) => `
+    <div class="grupo-row" data-idx="${i}">
+      <input type="color" class="gc-color" value="${g.color}">
+      <input type="text" class="gc-label" value="${g.label}" placeholder="Nombre del grupo">
+      <input type="text" class="gc-pin" value="${g.pin}" placeholder="PIN" maxlength="4" inputmode="numeric">
+      ${wizardGrupos.length > 1
+        ? `<button class="btn-remove-grupo" onclick="removeGrupo(${i})" title="Eliminar">×</button>`
+        : '<div style="width:28px"></div>'}
+    </div>
+  `).join('') + `<button class="btn-add-grupo" onclick="addGrupo()">+ Agregar grupo</button>`;
+}
+
+function syncGruposFromDOM() {
+  document.querySelectorAll('#grupos-config .grupo-row').forEach((row, i) => {
+    if (!wizardGrupos[i]) return;
+    wizardGrupos[i].color = row.querySelector('.gc-color').value;
+    wizardGrupos[i].label = row.querySelector('.gc-label').value.trim();
+    wizardGrupos[i].pin   = row.querySelector('.gc-pin').value.trim();
+  });
+}
+
+function addGrupo() {
+  syncGruposFromDOM();
+  const maxNum = Math.max(0, ...wizardGrupos.map(g => isNaN(g.id) ? 0 : parseInt(g.id)));
+  wizardGrupos.push({ id: String(maxNum + 1), label: `Grupo ${maxNum + 1}`, color: '#888888', pin: '' });
+  renderGruposConfig();
+}
+
+function removeGrupo(idx) {
+  syncGruposFromDOM();
+  wizardGrupos.splice(idx, 1);
+  renderGruposConfig();
+}
 
 function startWizard() {
   wizardStep     = 0;
   kmlTerritories = null;
+  wizardGrupos   = GRUPOS_DEFAULT.map(g => ({ ...g }));
 
-  document.getElementById('w-nombre').value = '';
-  document.getElementById('w-pin').value    = '';
+  document.getElementById('w-nombre').value  = '';
+  document.getElementById('w-pin').value     = '';
   document.getElementById('kml-input').value = '';
   document.getElementById('kml-preview').style.display = 'none';
   document.getElementById('btn-crear').disabled = true;
   document.getElementById('wizard-status').textContent = '';
 
-  // Render grupos
-  document.getElementById('grupos-config').innerHTML = GRUPOS_DEFAULT.map(g => `
-    <div class="grupo-row">
-      <div class="grupo-label" style="color:${g.color}">${g.label}</div>
-      <input type="color" id="gc-color-${g.id}" value="${g.color}">
-      <input type="text"  id="gc-pin-${g.id}"   value="${g.pin}" placeholder="PIN" maxlength="4" inputmode="numeric">
-    </div>
-  `).join('');
-
+  renderGruposConfig();
   showWizardStep(0);
   showView('view-wizard');
 }
@@ -160,9 +190,10 @@ function wizardNext() {
     if (!/^\d{4}$/.test(pin)) { uiAlert('El PIN del encargado debe ser 4 dígitos numéricos.'); return; }
   }
   if (wizardStep === 1) {
-    for (const g of GRUPOS_DEFAULT) {
-      const pin = document.getElementById(`gc-pin-${g.id}`).value.trim();
-      if (!/^\d{4}$/.test(pin)) { uiAlert(`El PIN del ${g.label} debe ser 4 dígitos.`); return; }
+    syncGruposFromDOM();
+    for (const g of wizardGrupos) {
+      if (!g.label) { uiAlert('Todos los grupos deben tener un nombre.'); return; }
+      if (!/^\d{4}$/.test(g.pin)) { uiAlert(`El PIN del "${g.label}" debe ser 4 dígitos.`); return; }
     }
   }
   showWizardStep(wizardStep + 1);
@@ -226,17 +257,26 @@ function parseKML(text) {
     }
 
     // Punto central
-    const ptEl = pm.querySelector('Point coordinates');
-    if (ptEl) {
-      const [lng, lat] = ptEl.textContent.trim().split(',').map(Number);
-      if (!isNaN(lat) && !isNaN(lng)) territories[baseNum].punto = { lat, lng };
+    const pointEls = pm.getElementsByTagName('Point');
+    if (pointEls.length > 0) {
+      const coordEl = pointEls[0].getElementsByTagName('coordinates')[0];
+      if (coordEl) {
+        const [lng, lat] = coordEl.textContent.trim().split(',').map(Number);
+        if (!isNaN(lat) && !isNaN(lng)) territories[baseNum].punto = { lat, lng };
+      }
     }
 
-    // Polígono (coordenadas en formato KML: lng,lat,alt separados por espacios)
-    const polyEl = pm.querySelector('Polygon outerBoundaryIs LinearRing coordinates');
-    if (polyEl) {
-      const coords = polyEl.textContent.trim().split(/\s+/)
-        .map(c => { const [lng, lat] = c.split(',').map(Number); return { lat, lng }; })
+    // Polígono — usa getElementsByTagName para mayor compatibilidad con KMLs de Google My Maps
+    const polygonEls = pm.getElementsByTagName('Polygon');
+    for (const poly of polygonEls) {
+      const outerEls = poly.getElementsByTagName('outerBoundaryIs');
+      if (!outerEls.length) continue;
+      const ringEls = outerEls[0].getElementsByTagName('LinearRing');
+      if (!ringEls.length) continue;
+      const coordEl = ringEls[0].getElementsByTagName('coordinates')[0];
+      if (!coordEl) continue;
+      const coords = coordEl.textContent.trim().split(/\s+/)
+        .map(c => { const p = c.split(',').map(Number); return { lat: p[1], lng: p[0] }; })
         .filter(c => !isNaN(c.lat) && !isNaN(c.lng));
       if (coords.length > 0) territories[baseNum].poligonos.push({ coords });
     }
@@ -259,12 +299,7 @@ async function crearCongregacion(skipKml) {
   const status       = document.getElementById('wizard-status');
   status.textContent = '';
 
-  const grupos = GRUPOS_DEFAULT.map(g => ({
-    id:    g.id,
-    label: g.label,
-    color: document.getElementById(`gc-color-${g.id}`).value,
-    pin:   document.getElementById(`gc-pin-${g.id}`).value.trim(),
-  }));
+  const grupos = wizardGrupos;
 
   uiLoading.show('Creando congregación...');
   try {
@@ -319,5 +354,7 @@ window.showView          = showView;
 window.startWizard       = startWizard;
 window.wizardNext        = wizardNext;
 window.wizardPrev        = wizardPrev;
+window.addGrupo          = addGrupo;
+window.removeGrupo       = removeGrupo;
 window.onKmlFile         = onKmlFile;
 window.crearCongregacion = crearCongregacion;
