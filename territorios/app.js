@@ -1428,5 +1428,15 @@ window.cambiarSemana = cambiarSemana;
 window.closeMapaPopup = closeMapaPopup;
 window.openTerritorioPicker = openTerritorioPicker;
 window.openConductorPicker = openConductorPicker;
+window.startEdit = startEdit;
+window.startAddEntry = startAddEntry;
+window.cancelEdit = cancelEdit;
+window.saveEdit = saveEdit;
+window.deleteEntry = deleteEntry; 
+window.deleteHistorialDoc = deleteHistorialDoc;
+window.openMapaPicker = openMapaPopup;
+
+
+
 
 checkAuth();
