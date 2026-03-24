@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>AppJW — Menú</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background: #1e1e1e;
+      color: #eee;
+      font-family: system-ui, sans-serif;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+    }
+
+    .back {
+      position: fixed;
+      top: 16px;
+      left: 16px;
+      background: none;
+      border: none;
+      color: #888;
+      font-size: 1.4rem;
+      cursor: pointer;
+      padding: 4px 8px;
+    }
+
+    .congre-label {
+      font-size: 0.8rem;
+      color: #666;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      margin-bottom: 8px;
+      text-align: center;
+    }
+
+    h1 {
+      font-size: 1.4rem;
+      font-weight: 700;
+      margin-bottom: 40px;
+      text-align: center;
+    }
+
+    #modulos {
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+      width: 100%;
+      max-width: 320px;
+    }
+
+    .modulo-card {
+      background: #2a2a2a;
+      border: 1px solid #333;
+      border-radius: 14px;
+      padding: 24px;
+      cursor: pointer;
+      transition: background 0.15s, transform 0.1s;
+      display: flex;
+      align-items: center;
+      gap: 18px;
+    }
+
+    .modulo-card:active {
+      background: #323232;
+      transform: scale(0.98);
+    }
+
+    .modulo-icon {
+      font-size: 2rem;
+      flex-shrink: 0;
+    }
+
+    .modulo-info { flex: 1; }
+
+    .modulo-titulo {
+      font-size: 1.05rem;
+      font-weight: 600;
+      margin-bottom: 4px;
+    }
+
+    .modulo-desc {
+      font-size: 0.82rem;
+      color: #777;
+      line-height: 1.4;
+    }
+  </style>
+</head>
+<body>
+
+  <button class="back" onclick="window.location.href='./index.html'">‹</button>
+
+  <div class="congre-label" id="congre-label">—</div>
+  <h1>¿Qué módulo abrís?</h1>
+
+  <div id="modulos">
+    <div class="modulo-card" onclick="ir('territorios')">
+      <div class="modulo-icon">🗺️</div>
+      <div class="modulo-info">
+        <div class="modulo-titulo">Territorios</div>
+        <div class="modulo-desc">Planificar salidas, registrar trabajo y ver historial</div>
+      </div>
+    </div>
+    <div class="modulo-card" onclick="ir('asignaciones')">
+      <div class="modulo-icon">📋</div>
+      <div class="modulo-info">
+        <div class="modulo-titulo">Asignaciones</div>
+        <div class="modulo-desc">Programación de roles para las reuniones</div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // Verificar que hay una congre seleccionada
+    const congreId     = sessionStorage.getItem('congreId');
+    const congreNombre = sessionStorage.getItem('congreNombre');
+
+    if (!congreId) {
+      window.location.href = './index.html';
+    }
+
+    document.getElementById('congre-label').textContent = congreNombre || congreId;
+
+    function ir(modulo) {
+      window.location.href = `./${modulo}/index.html`;
+    }
+  </script>
+
+</body>
+</html>

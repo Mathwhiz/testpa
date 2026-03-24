@@ -1,75 +1,196 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-  <link rel="icon" type="image/svg+xml" href="favicon.svg">
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Congregación Sur</title>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>AppJW</title>
   <style>
-    * { box-sizing: border-box; margin: 0; padding: 0; }
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
     body {
+      background: #1e1e1e;
+      color: #eee;
       font-family: system-ui, sans-serif;
       min-height: 100vh;
       display: flex;
+      flex-direction: column;
       align-items: center;
       justify-content: center;
-      padding: 2rem 1rem;
-      color: #eee;
+      padding: 24px;
     }
-    .wrap {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      gap: 14px;
-      width: 100%;
-      max-width: 320px;
-    }
+
     .logo {
+      font-size: 1.1rem;
+      font-weight: 600;
+      letter-spacing: 0.08em;
+      color: #aaa;
+      text-transform: uppercase;
+      margin-bottom: 40px;
+    }
+
+    h1 {
+      font-size: 1.4rem;
+      font-weight: 600;
+      margin-bottom: 8px;
+      text-align: center;
+    }
+
+    .subtitle {
+      font-size: 0.9rem;
+      color: #888;
+      margin-bottom: 32px;
+      text-align: center;
+    }
+
+    /* Grid de cards */
+    #congre-list {
       display: flex;
       flex-direction: column;
+      gap: 12px;
+      width: 100%;
+      max-width: 340px;
+    }
+
+    .congre-card {
+      background: #2a2a2a;
+      border: 1px solid #333;
+      border-radius: 12px;
+      padding: 20px 24px;
+      cursor: pointer;
+      transition: background 0.15s, transform 0.1s;
+      display: flex;
       align-items: center;
-      gap: 10px;
-      margin-bottom: 18px;
+      gap: 16px;
+      text-decoration: none;
+      color: inherit;
+    }
+
+    .congre-card:active {
+      background: #323232;
+      transform: scale(0.98);
+    }
+
+    .congre-icon {
+      width: 42px;
+      height: 42px;
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.3rem;
+      flex-shrink: 0;
+      background: #333;
+    }
+
+    .congre-info {
+      flex: 1;
+    }
+
+    .congre-nombre {
+      font-size: 1rem;
+      font-weight: 600;
+      margin-bottom: 2px;
+    }
+
+    .congre-id {
+      font-size: 0.78rem;
+      color: #666;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    .congre-arrow {
+      color: #555;
+      font-size: 1.1rem;
+    }
+
+    /* Estado de carga */
+    .loading {
+      color: #666;
+      font-size: 0.9rem;
+      text-align: center;
+      padding: 40px 0;
+    }
+
+    .error {
+      color: #e07070;
+      font-size: 0.85rem;
+      text-align: center;
+      padding: 20px 0;
     }
   </style>
 </head>
-<body class="cs-home-body">
-  <div class="wrap">
+<body>
 
-    <div class="logo">
-      <div class="cs-logo-placeholder"></div>
-      <div class="cs-logo-title">Congregación Sur</div>
-      <div class="cs-logo-sub">Seleccioná un módulo</div>
-    </div>
+  <div class="logo">AppJW</div>
+  <h1>Seleccioná tu congregación</h1>
+  <p class="subtitle">Elegí para continuar</p>
 
-    <a class="cs-nav-card cs-nav-card-terr" href="territorios/index.html">
-      <div class="cs-nav-icon cs-nav-icon-terr">
-        <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
-          <path d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-1.447-.894L15 9m0 8V9m0 0L9 7"
-            stroke="#5DB85D" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
-        </svg>
-      </div>
-      <div>
-        <div class="cs-nav-title">Territorios</div>
-        <div class="cs-nav-sub">Planificar y registrar salidas</div>
-      </div>
-    </a>
-
-    <a class="cs-nav-card cs-nav-card-asign" href="asignaciones/index.html">
-      <div class="cs-nav-icon cs-nav-icon-asign">
-        <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
-          <path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2M9 11a4 4 0 100-8 4 4 0 000 8zM23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75"
-            stroke="#5B8DDE" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
-        </svg>
-      </div>
-      <div>
-        <div class="cs-nav-title">Asignaciones</div>
-        <div class="cs-nav-sub">Acomodadores, sonido y más</div>
-      </div>
-    </a>
-
-    <div class="cs-footer">Congregación Sur · App interna</div>
+  <div id="congre-list">
+    <div class="loading">Cargando congregaciones…</div>
   </div>
-  <script src="ui-utils.js"></script>
+
+  <script type="module">
+    import { db } from './firebase.js';
+    import { collection, getDocs } from "https://www.gstatic.com/firebasejs/11.6.0/firebase-firestore.js";
+
+    const list = document.getElementById('congre-list');
+
+    // Íconos por ID de congre (se puede ampliar)
+    const ICONOS = {
+      sur:   '🏠',
+      norte: '🏡',
+      este:  '🏘️',
+      oeste: '🏗️',
+    };
+
+    async function cargarCongres() {
+      try {
+        const snap = await getDocs(collection(db, 'congregaciones'));
+
+        if (snap.empty) {
+          list.innerHTML = '<div class="error">No hay congregaciones registradas.</div>';
+          return;
+        }
+
+        list.innerHTML = '';
+
+        snap.forEach(doc => {
+          const data   = doc.data();
+          const id     = doc.id;
+          const nombre = data.nombre || id;
+          const icono  = ICONOS[id] || '⛪';
+
+          const card = document.createElement('div');
+          card.className = 'congre-card';
+          card.innerHTML = `
+            <div class="congre-icon">${icono}</div>
+            <div class="congre-info">
+              <div class="congre-nombre">${nombre}</div>
+              <div class="congre-id">${id}</div>
+            </div>
+            <div class="congre-arrow">›</div>
+          `;
+
+          card.addEventListener('click', () => elegirCongre(id, nombre));
+          list.appendChild(card);
+        });
+
+      } catch (err) {
+        console.error(err);
+        list.innerHTML = `<div class="error">Error al cargar: ${err.message}</div>`;
+      }
+    }
+
+    function elegirCongre(id, nombre) {
+      sessionStorage.setItem('congreId',     id);
+      sessionStorage.setItem('congreNombre', nombre);
+      // Redirige al selector de módulo
+      window.location.href = './menu.html';
+    }
+
+    cargarCongres();
+  </script>
+
 </body>
 </html>
