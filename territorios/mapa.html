@@ -172,17 +172,22 @@ async function cargarTerritorios() {
   const terrCol = collection(db, 'congregaciones', CONGRE_ID, 'territorios');
   const snap = await getDocs(terrCol);
 
-  TERRITORIOS = snap.docs.map(d => {
+  TERRITORIOS = snap.docs.flatMap(d => {
     const t = d.data();
-    // Convertir poligonos: [{lat,lng}] o [[lat,lng]] → [[lat,lng]]
-    const coords = (t.poligonos || [[]])[0] || [];
-    return {
-      num:    String(t.id),
+    const poligonos = t.poligonos || [];
+    // Normalizar cada vértice: acepta [lat,lng] o {lat,lng}
+    function normCoords(poly) {
+      return poly.map(v => Array.isArray(v) ? [v[0], v[1]] : [v.lat, v.lng]);
+    }
+    // Cada territorio puede tener múltiples sub-polígonos (poligonos[0], [1], ...)
+    // Los renderizamos como entradas separadas con sufijo si hay más de uno
+    return poligonos.map((poly, idx) => ({
+      num:    String(t.id) + (poligonos.length > 1 ? String.fromCharCode(97 + idx) : ''),
       grupo:  String(t.grupoId),
-      coords: coords,
+      coords: normCoords(poly),
       punto:  t.punto || null,
       tipo:   t.tipo || 'normal',
-    };
+    })).filter(entry => entry.coords.length >= 3);
   });
 }
 
@@ -271,8 +276,8 @@ async function initMap() {
   } else if (_grupoParam !== 'all') {
     filterGroup(_grupoParam);
   } else if (allLayers.length) {
-    const bounds = L.latLngBounds(allLayers.map(l => l.polygon.getBounds()));
-    map.fitBounds(bounds, { padding: [20, 20] });
+    const validBounds = allLayers.map(l => l.polygon.getBounds()).filter(b => b.isValid());
+    if (validBounds.length) map.fitBounds(L.latLngBounds(validBounds), { padding: [20, 20] });
   }
 
   L.marker(SALON_DEL_REINO, {
@@ -305,13 +310,29 @@ function baseNum(num) {
 }
 
 function makeLabel(coords, fill, text) {
+  // Guard: coords debe ser array de al menos 3 puntos válidos
+  const valid = coords.filter(v => Array.isArray(v) && v.length >= 2 && isFinite(v[0]) && isFinite(v[1]));
+  if (valid.length < 3) return L.marker([0,0], { opacity: 0, interactive: false, icon: L.divIcon({ html: '' }) });
+
   let labelCenter;
-  { const cc=coords, n2=cc.length; let A=0,cLat=0,cLon=0;
-    for(let i=0;i<n2;i++){const[la0,lo0]=cc[i],[la1,lo1]=cc[(i+1)%n2];const cr=lo0*la1-lo1*la0;A+=cr;cLat+=(la0+la1)*cr;cLon+=(lo0+lo1)*cr;}
-    A*=0.5;
-    const poly = L.polygon(coords);
-    labelCenter = Math.abs(A)>1e-10 ? L.latLng(cLat/(6*A),cLon/(6*A)) : poly.getBounds().getCenter();
+  const n = valid.length;
+  let A = 0, cLat = 0, cLon = 0;
+  for (let i = 0; i < n; i++) {
+    const [la0, lo0] = valid[i];
+    const [la1, lo1] = valid[(i + 1) % n];
+    const cr = lo0 * la1 - lo1 * la0;
+    A += cr; cLat += (la0 + la1) * cr; cLon += (lo0 + lo1) * cr;
   }
+  A *= 0.5;
+  if (Math.abs(A) > 1e-10) {
+    labelCenter = L.latLng(cLat / (6 * A), cLon / (6 * A));
+  } else {
+    // Fallback: promedio simple de todos los vértices
+    const avgLat = valid.reduce((s, v) => s + v[0], 0) / n;
+    const avgLng = valid.reduce((s, v) => s + v[1], 0) / n;
+    labelCenter = L.latLng(avgLat, avgLng);
+  }
+
   const w = Math.max(26, text.length*7+10);
   return L.marker(labelCenter, {
     interactive: false,
@@ -444,8 +465,8 @@ function applyPickerFilter(grupo) {
   if (allLayers.length === 0) return;
   const visible = allLayers.filter(l => l.group === grupo);
   if (visible.length) {
-    const bounds = L.latLngBounds(visible.map(l => l.polygon.getBounds()));
-    map.flyToBounds(bounds, { padding:[24,24], maxZoom:16, minZoom:16, duration:0.4 });
+    const validBounds = visible.map(l => l.polygon.getBounds()).filter(b => b.isValid());
+    if (validBounds.length) map.flyToBounds(L.latLngBounds(validBounds), { padding:[24,24], maxZoom:16, minZoom:16, duration:0.4 });
   }
 }
 
@@ -522,8 +543,8 @@ window.filterGroup = function(group) {
       polygon.setStyle({ fillOpacity: 0.35, weight: 2.5 });
     });
     if (visible.length) {
-      const bounds = L.latLngBounds(visible.map(l => l.polygon.getBounds()));
-      map.flyToBounds(bounds, { padding:[30,30], maxZoom:16, duration:0.5 });
+      const validBounds = visible.map(l => l.polygon.getBounds()).filter(b => b.isValid());
+      if (validBounds.length) map.flyToBounds(L.latLngBounds(validBounds), { padding:[30,30], maxZoom:16, duration:0.5 });
     }
   }
   map.closePopup();
