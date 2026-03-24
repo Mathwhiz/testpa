@@ -256,7 +256,7 @@ async function initMap() {
     document.querySelector('.map-header').style.display = 'none';
     document.querySelector('.map-filters').style.display = 'none';
   }
-  if (_modoParam === 'picker' || urlParams.get('picker') === '1') {
+  if (_modoParam === 'picker' || _params.get('picker') === '1') {
     document.getElementById('picker-bar').classList.add('visible');
     document.querySelector('.map-filters').style.display = 'none';
     document.querySelector('.map-header').style.display = 'none';
@@ -277,7 +277,7 @@ async function initMap() {
 
   renderTerritories();
 
-  if (_modoParam === 'picker' || urlParams.get('picker') === '1') {
+  if (_modoParam === 'picker' || _params.get('picker') === '1') {
     applyPickerFilter(_grupoParam);
   } else if (_grupoParam !== 'all') {
     filterGroup(_grupoParam);
@@ -371,25 +371,23 @@ function renderTerritories() {
       return;
     }
 
-    if (_modoParam === 'picker' || urlParams.get('picker') === '1') {
+    if (_modoParam === 'picker' || _params.get('picker') === '1') {
       const isMainGroup = String(t.grupo) === String(_grupoParam);
-      let c;
-      if (isMainGroup) {
-        const info = territoriosInfo[baseNum(t.num)] || {};
-        const lastDate = info.lastFin || info.lastIni;
-        c = colorByDias(lastDate ? daysSince(lastDate) : null);
-      } else {
-        c = { fill:'#555', border:'#444' };
-      }
-      const fillOp = isMainGroup ? 0.40 : 0.08;
-      const weight = isMainGroup ? 2 : 1;
-      const opacity = isMainGroup ? 0.9 : 0.35;
+      if (!isMainGroup) return;
+
+      const info = territoriosInfo[baseNum(t.num)] || {};
+      const lastDate = info.lastFin || info.lastIni;
+      const c = colorByDias(lastDate ? daysSince(lastDate) : null);
+      const fillOp = 0.22;
+      const weight = 2;
+      const opacity = 0.9;
+
       const polygon = L.polygon(t.coords, { color:c.border, fillColor:c.fill, fillOpacity:fillOp, weight, opacity });
-      const label   = makeLabel(t.coords, isMainGroup ? c.fill : '#444', t.num);
+      const label   = makeLabel(t.coords, c.fill, t.num);
       polygon.on('click', () => togglePickerTerritory(t.num, polygon, t.grupo, label, c, { fillOp, weight, opacity, isMainGroup }));
       polygon.on('mouseover', () => {
         if (!pickerSelected.has(t.num))
-          polygon.setStyle({ fillOpacity: isMainGroup ? 0.60 : 0.15, weight: weight+0.5 });
+          polygon.setStyle({ fillOpacity: 0.45, weight: 2.5 });
       });
       polygon.on('mouseout', () => {
         if (!pickerSelected.has(t.num))
@@ -524,7 +522,7 @@ function openPopup(layer, numero, grupo) {
 
 // ── handleBack ──
 window.handleBack = function() {
-  if (_modoParam === 'picker' || urlParams.get('picker') === '1') {
+  if (_modoParam === 'picker' || _params.get('picker') === '1') {
     const msg = { type: 'picker-cancel', salidaId: _salidaId };
     if (window.parent && window.parent !== window) window.parent.postMessage(msg, '*');
     else if (window.opener) window.opener.postMessage(msg, '*');
