@@ -1,6 +1,6 @@
 import { db } from '../firebase.js';
 import {
-  collection, doc, getDocs, addDoc, updateDoc, deleteDoc,
+  collection, doc, getDoc, getDocs, addDoc, updateDoc, deleteDoc,
   query, where, orderBy
 } from "https://www.gstatic.com/firebasejs/11.6.0/firebase-firestore.js";
 
@@ -67,18 +67,19 @@ const DIA_BG = {
 };
 
 /* ─── PIN ─── */
-// El PIN del encargado debería venir de Firestore (congregaciones/sur).
-// Por ahora lo leemos al iniciar, con fallback hardcodeado.
-let PIN_ENCARGADO = '1234';
+let PIN_ENCARGADO = null;
 
 (async function cargarConfig() {
   try {
-    const snap = await getDocs(query(collection(db, 'congregaciones'), where('__name__', '==', CONGRE_ID)));
-    if (!snap.empty) {
-      const cfg = snap.docs[0].data();
-      if (cfg.pinEncargado) PIN_ENCARGADO = cfg.pinEncargado;
+    const snap = await getDoc(congreRef());
+    if (snap.exists() && snap.data().pinEncargado) {
+      PIN_ENCARGADO = snap.data().pinEncargado;
+    } else {
+      await uiAlert('No se encontró el PIN del encargado en la base de datos.', 'Error de configuración');
     }
-  } catch(e) { /* fallback al hardcodeado */ }
+  } catch(e) {
+    await uiAlert('Error al cargar la configuración: ' + e.message, 'Error');
+  }
 })();
 
 /* ─── Estado global ─── */
@@ -324,6 +325,12 @@ function updatePinDots() {
   }
 }
 function checkPin() {
+  if (PIN_ENCARGADO === null) {
+    setText('pin-error', 'Error: configuración no cargada');
+    pinBuffer = '';
+    updatePinDots();
+    return;
+  }
   if (pinBuffer === PIN_ENCARGADO) {
     hide('pin-modal');
     esEncargado = true;

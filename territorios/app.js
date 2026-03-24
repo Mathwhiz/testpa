@@ -12,6 +12,7 @@ function terrCol()    { return collection(db, 'congregaciones', CONGRE_ID, 'terr
 function histCol(id)  { return collection(db, 'congregaciones', CONGRE_ID, 'territorios', String(id), 'historial'); }
 function salidaCol()  { return collection(db, 'congregaciones', CONGRE_ID, 'salidas'); }
 function pubCol()     { return collection(db, 'congregaciones', CONGRE_ID, 'publicadores'); }
+function gruposCol()  { return collection(db, 'congregaciones', CONGRE_ID, 'grupos'); }
 
 // ─────────────────────────────────────────
 //  CONDUCTORES
@@ -363,9 +364,28 @@ async function cerrarSesion() {
 // ─────────────────────────────────────────
 //   PIN
 // ─────────────────────────────────────────
-const PINS = { 1:'1111', 2:'2222', 3:'3333', 4:'4444', C:'5555' };
+let PINS = null;
 let pinBuffer = '';
 let pinGrupo  = null;
+
+async function cargarPins() {
+  try {
+    const snap = await getDocs(gruposCol());
+    PINS = {};
+    snap.forEach(d => {
+      const { id, pin } = d.data();
+      if (id && pin) PINS[id] = pin;
+    });
+    if (Object.keys(PINS).length === 0) {
+      await uiAlert('No se encontraron grupos configurados en la base de datos.', 'Error de configuración');
+      PINS = null;
+    }
+  } catch(e) {
+    await uiAlert('Error al cargar la configuración de grupos: ' + e.message, 'Error');
+    PINS = null;
+  }
+}
+cargarPins();
 
 function openPin() {
   pinGrupo = selectedGrupo;
@@ -404,9 +424,13 @@ function updatePinDots() {
 }
 
 function checkPin() {
-  // En versión multi-congregación, los PINs vienen de Firestore (grupos/{id})
-  // Por ahora usamos los hardcodeados como fallback; reemplazar cuando se migre index.html
-  const correct = PINS[pinGrupo];
+  if (PINS === null) {
+    document.getElementById('pin-error').textContent = 'Error: configuración no cargada';
+    pinBuffer = '';
+    updatePinDots();
+    return;
+  }
+  const correct = PINS[String(pinGrupo)];
   if (pinBuffer === correct) {
     document.getElementById('pin-modal').style.display = 'none';
     pinBuffer = '';
