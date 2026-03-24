@@ -1,244 +1,290 @@
 <!DOCTYPE html>
-<html lang="es">
+<html lang="es" class="dark">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>UI Sandbox — Territory App</title>
+  <title>UI Sandbox — shadcn style</title>
   <link rel="icon" type="image/svg+xml" href="favicon.svg">
-
-  <!-- Open Props -->
-  <link rel="stylesheet" href="https://unpkg.com/open-props"/>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
 
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
     :root {
-      --bg:        #1a1c1f;
-      --surface:   #232628;
-      --surface-2: #2a2d30;
-      --border:    #2e3033;
-      --border-2:  #3a3d42;
-      --text:      #e8e8e8;
-      --text-2:    #999;
-      --text-3:    #555;
-      --accent:    #7F77DD;
-      --green:     #5DB85D;
-      --blue:      #5B8DDE;
+      --bg:       oklch(0.145 0 0);
+      --surface:  oklch(0.145 0 0);   /* mismo que bg — flat */
+      --surface-2:oklch(0.205 0 0);   /* inputs, hover */
+      --surface-3:oklch(0.232 0 0);   /* hover de cards */
+      --border:   oklch(0.269 0 0);
+      --border-2: oklch(0.32 0 0);
+      --text:     oklch(0.985 0 0);
+      --text-2:   oklch(0.708 0 0);
+      --text-3:   oklch(0.439 0 0);
+      --radius:   0.625rem;           /* 10px */
+      --accent:   oklch(0.985 0 0);   /* blanco en dark */
     }
 
     body {
       background: var(--bg);
-      background-image:
-        radial-gradient(ellipse at 60% 10%, rgba(46,134,193,0.06) 0%, transparent 60%),
-        radial-gradient(ellipse at 20% 80%, rgba(127,119,221,0.05) 0%, transparent 50%);
       color: var(--text);
-      font-family: system-ui, sans-serif;
+      font-family: 'Inter', system-ui, sans-serif;
       min-height: 100vh;
-      padding: var(--size-8) var(--size-4);
+      padding: 48px 16px;
+      -webkit-font-smoothing: antialiased;
     }
 
     /* ── Layout ── */
     .page-title {
-      font-size: var(--font-size-3);
-      font-weight: var(--font-weight-7);
+      font-size: 11px;
+      font-weight: 600;
       color: var(--text-3);
       text-transform: uppercase;
-      letter-spacing: var(--font-letterspacing-4);
-      margin-bottom: var(--size-10);
+      letter-spacing: 0.1em;
+      margin-bottom: 40px;
       text-align: center;
     }
 
     .sections {
       display: flex;
       flex-direction: column;
-      gap: var(--size-10);
-      max-width: 400px;
+      gap: 40px;
+      max-width: 360px;
       margin: 0 auto;
     }
 
     .section-label {
-      font-size: var(--font-size-0);
-      font-weight: var(--font-weight-7);
+      font-size: 11px;
+      font-weight: 600;
       color: var(--text-3);
       text-transform: uppercase;
-      letter-spacing: var(--font-letterspacing-3);
-      margin-bottom: var(--size-3);
+      letter-spacing: 0.08em;
+      margin-bottom: 16px;
     }
 
-    /* ── Cover (pantalla inicial) ── */
+    .divider {
+      height: 1px;
+      background: var(--border);
+    }
+
+    /* ── Cover ── */
     .cover {
       display: flex;
       flex-direction: column;
       align-items: center;
-      gap: var(--size-3);
-      padding: var(--size-6) 0;
+      gap: 6px;
+      padding: 24px 0 20px;
     }
 
-    .cover-logo {
-      margin-bottom: var(--size-2);
-    }
+    .cover-logo { margin-bottom: 8px; }
 
     .cover-title {
-      font-size: var(--font-size-6);
-      font-weight: var(--font-weight-9);
-      letter-spacing: var(--font-letterspacing-0);
+      font-size: 28px;
+      font-weight: 700;
+      letter-spacing: -0.6px;
       color: var(--text);
       text-align: center;
     }
 
     .cover-sub {
-      font-size: var(--font-size-1);
-      color: var(--text-3);
+      font-size: 13px;
+      color: var(--text-2);
       text-align: center;
     }
 
-    /* ── Nav cards ── */
+    /* ── Cards — flat, borde fino ── */
     .nav-card {
       width: 100%;
       background: var(--surface);
       border: 1px solid var(--border);
-      border-radius: var(--radius-3);
-      padding: var(--size-4) var(--size-5);
+      border-radius: var(--radius);
+      padding: 14px 16px;
       cursor: pointer;
       display: flex;
       align-items: center;
-      gap: var(--size-4);
-      transition:
-        border-color var(--animation-fade-in),
-        background var(--animation-fade-in),
-        transform 0.1s,
-        box-shadow var(--animation-fade-in);
+      gap: 14px;
+      transition: background 0.12s, border-color 0.12s;
       text-decoration: none;
       color: inherit;
-      box-shadow: var(--shadow-2);
       outline: none;
       font-family: inherit;
     }
     .nav-card:hover {
-      transform: translateY(-1px);
-      box-shadow: var(--shadow-4);
+      background: var(--surface-3);
+      border-color: var(--border-2);
     }
-    .nav-card:active { transform: scale(0.98); box-shadow: var(--shadow-1); }
-
-    .nav-card-terr:hover  { border-color: #3a6b3a; background: #242826; }
-    .nav-card-asign:hover { border-color: #2e4070; background: #23252e; }
-    .nav-card-congre:hover { border-color: var(--border-2); background: #272a2d; }
+    .nav-card:active { opacity: 0.7; }
 
     .nav-icon {
-      width: var(--size-11);
-      height: var(--size-11);
-      border-radius: var(--radius-2);
+      width: 36px;
+      height: 36px;
+      border-radius: calc(var(--radius) - 2px);
       display: flex;
       align-items: center;
       justify-content: center;
       flex-shrink: 0;
-      font-size: var(--font-size-4);
+      background: var(--surface-2);
+      border: 1px solid var(--border);
+      font-size: 17px;
     }
-    .nav-icon-terr  { background: #1a3a1a; }
-    .nav-icon-asign { background: #1a2340; }
-    .nav-icon-congre { background: #1a2030; }
 
-    .nav-card-title { font-size: var(--font-size-2); font-weight: var(--font-weight-6); color: var(--text); margin-bottom: 2px; }
-    .nav-card-sub   { font-size: var(--font-size-0); color: var(--text-3); }
+    .nav-card-title { font-size: 15px; font-weight: 500; color: var(--text); margin-bottom: 1px; }
+    .nav-card-sub   { font-size: 12px; color: var(--text-2); }
+    .nav-card-id    { font-size: 11px; color: var(--text-3); font-family: monospace; }
 
-    .nav-arrow { color: var(--text-3); font-size: var(--font-size-3); margin-left: auto; flex-shrink: 0; }
+    .nav-arrow { color: var(--text-3); margin-left: auto; flex-shrink: 0; }
 
-    /* ── Buttons ── */
+    /* ── Botones ── */
     .btn {
       width: 100%;
-      padding: var(--size-3) var(--size-5);
-      font-size: var(--font-size-1);
-      font-weight: var(--font-weight-6);
-      border-radius: var(--radius-2);
-      border: none;
+      padding: 10px 16px;
+      font-size: 14px;
+      font-weight: 500;
+      border-radius: var(--radius);
+      border: 1px solid transparent;
       cursor: pointer;
-      transition: filter 0.1s, transform 0.1s;
+      transition: background 0.12s, opacity 0.12s;
       font-family: inherit;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
     }
-    .btn:active { transform: scale(0.97); }
-    .btn-primary   { background: var(--accent); color: #fff; }
-    .btn-primary:hover { filter: brightness(1.1); }
-    .btn-secondary { background: var(--surface-2); color: var(--text-2); border: 1px solid var(--border-2); }
-    .btn-secondary:hover { filter: brightness(1.15); }
-    .btn-danger    { background: #A32D2D; color: #F09595; }
-    .btn-danger:hover { filter: brightness(1.1); }
-    .btn-row { display: flex; gap: var(--size-2); }
+    .btn:active { opacity: 0.8; }
 
-    /* ── PIN pad ── */
+    .btn-primary {
+      background: var(--text);       /* blanco en dark */
+      color: oklch(0.145 0 0);       /* negro */
+      border-color: transparent;
+    }
+    .btn-primary:hover { background: oklch(0.9 0 0); }
+
+    .btn-secondary {
+      background: var(--surface-2);
+      color: var(--text);
+      border-color: var(--border);
+    }
+    .btn-secondary:hover { background: var(--surface-3); }
+
+    .btn-outline {
+      background: transparent;
+      color: var(--text);
+      border-color: var(--border);
+    }
+    .btn-outline:hover { background: var(--surface-2); }
+
+    .btn-destructive {
+      background: oklch(0.396 0.141 25.723);
+      color: oklch(0.637 0.237 25.331);
+      border-color: transparent;
+    }
+    .btn-destructive:hover { filter: brightness(1.1); }
+
+    .btn-row { display: flex; gap: 8px; }
+    .btn-row .btn { flex: 1; }
+
+    /* ── PIN ── */
     .pin-wrap {
       display: flex;
       flex-direction: column;
       align-items: center;
-      gap: var(--size-5);
+      gap: 20px;
+      padding: 16px 0;
     }
-    .pin-dots { display: flex; gap: var(--size-3); }
-    .pin-dot  {
-      width: var(--size-4); height: var(--size-4);
-      border-radius: var(--radius-round);
-      border: 2px solid var(--border-2);
+
+    .pin-label {
+      font-size: 20px;
+      font-weight: 600;
+      color: var(--text);
+      letter-spacing: -0.3px;
+    }
+
+    .pin-dots { display: flex; gap: 10px; }
+    .pin-dot {
+      width: 10px; height: 10px;
+      border-radius: 50%;
+      border: 1.5px solid var(--border-2);
       background: transparent;
       transition: .15s;
     }
-    .pin-dot.filled { background: var(--accent); border-color: var(--accent); }
+    .pin-dot.filled { background: var(--text); border-color: var(--text); }
+
     .pin-grid {
       display: grid;
-      grid-template-columns: repeat(3, var(--size-14));
-      gap: var(--size-2);
+      grid-template-columns: repeat(3, 72px);
+      gap: 8px;
     }
+
     .pin-btn {
       background: var(--surface-2);
-      border: none;
-      border-radius: var(--radius-2);
-      width: var(--size-14);
-      height: var(--size-14);
-      font-size: var(--font-size-5);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      width: 72px; height: 72px;
+      font-size: 22px;
+      font-weight: 400;
       color: var(--text);
       cursor: pointer;
-      transition: background 0.1s, transform 0.08s;
+      transition: background 0.1s;
       font-family: inherit;
     }
-    .pin-btn:hover  { background: var(--surface-2); filter: brightness(1.2); }
-    .pin-btn:active { transform: scale(0.91); }
+    .pin-btn:hover  { background: var(--surface-3); }
+    .pin-btn:active { opacity: 0.6; }
 
-    /* ── Cards de congregación ── */
-    .congre-id-label {
-      font-size: var(--font-size-00);
-      color: var(--text-3);
-      text-transform: uppercase;
-      letter-spacing: var(--font-letterspacing-3);
+    /* ── Badges ── */
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      border-radius: calc(var(--radius) - 2px);
+      padding: 3px 10px;
+      font-size: 11px;
+      font-weight: 500;
+      border: 1px solid var(--border);
+      background: var(--surface-2);
+      color: var(--text-2);
+    }
+    .badge-outline {
+      background: transparent;
+      color: var(--text-2);
+      border-color: var(--border);
+    }
+
+    /* ── Input ── */
+    .input {
+      width: 100%;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 9px 12px;
+      color: var(--text);
+      font-size: 14px;
+      font-family: inherit;
+      outline: none;
+      transition: border-color 0.12s;
+    }
+    .input:focus { border-color: var(--border-2); }
+    .input::placeholder { color: var(--text-3); }
+
+    .field-label {
+      display: block;
+      font-size: 12px;
+      font-weight: 500;
+      color: var(--text-2);
+      margin-bottom: 6px;
     }
 
     /* ── Footer ── */
     .footer {
-      font-size: var(--font-size-00);
-      color: #333;
+      font-size: 11px;
+      color: var(--text-3);
       text-align: center;
-      margin-top: var(--size-2);
-    }
-
-    /* ── Divider ── */
-    .divider {
-      height: 1px;
-      background: var(--border);
-      margin: var(--size-6) 0;
-    }
-
-    /* ── Tag ── */
-    .tag {
-      display: inline-block;
-      background: rgba(127,119,221,0.12);
-      color: var(--accent);
-      border: 1px solid rgba(127,119,221,0.25);
-      border-radius: var(--radius-round);
-      padding: 3px 10px;
-      font-size: var(--font-size-00);
-      font-weight: var(--font-weight-6);
+      margin-top: 8px;
     }
   </style>
 </head>
 <body>
 
-  <p class="page-title">UI Sandbox</p>
+  <p class="page-title">UI Sandbox — shadcn/neutral dark</p>
 
   <div class="sections">
 
@@ -246,31 +292,35 @@
     <div>
       <div class="section-label">Pantalla inicio (index)</div>
       <div class="cover">
-        <div class="cover-logo" id="logo-placeholder-1"></div>
+        <div class="cover-logo" id="logo-1"></div>
         <div class="cover-title">Territory App</div>
         <div class="cover-sub">Seleccioná tu congregación</div>
       </div>
 
-      <div style="display:flex;flex-direction:column;gap:10px;">
-        <button class="nav-card nav-card-congre">
-          <div class="nav-icon nav-icon-congre">🏠</div>
+      <div style="display:flex;flex-direction:column;gap:8px;">
+        <button class="nav-card">
+          <div class="nav-icon">🏠</div>
           <div>
             <div class="nav-card-title">Congregación Sur</div>
-            <div class="congre-id-label">sur</div>
+            <div class="nav-card-id">sur</div>
           </div>
-          <div class="nav-arrow">›</div>
+          <div class="nav-arrow">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M9 18l6-6-6-6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </div>
         </button>
-        <button class="nav-card nav-card-congre">
-          <div class="nav-icon nav-icon-congre">🏡</div>
+        <button class="nav-card">
+          <div class="nav-icon">🏡</div>
           <div>
             <div class="nav-card-title">Congregación Norte</div>
-            <div class="congre-id-label">norte</div>
+            <div class="nav-card-id">norte</div>
           </div>
-          <div class="nav-arrow">›</div>
+          <div class="nav-arrow">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M9 18l6-6-6-6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </div>
         </button>
       </div>
 
-      <div class="footer" style="margin-top:16px;">Territory App · Sistema interno</div>
+      <div class="footer" style="margin-top:20px;">Territory App · Sistema interno</div>
     </div>
 
     <div class="divider"></div>
@@ -279,17 +329,17 @@
     <div>
       <div class="section-label">Selector de módulo (menu)</div>
       <div class="cover">
-        <div class="cover-logo" id="logo-placeholder-2"></div>
+        <div class="cover-logo" id="logo-2"></div>
         <div class="cover-title">Congregación Sur</div>
         <div class="cover-sub">Seleccioná un módulo</div>
       </div>
 
-      <div style="display:flex;flex-direction:column;gap:10px;">
-        <button class="nav-card nav-card-terr">
-          <div class="nav-icon nav-icon-terr">
-            <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
+      <div style="display:flex;flex-direction:column;gap:8px;">
+        <button class="nav-card">
+          <div class="nav-icon">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
               <path d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-1.447-.894L15 9m0 8V9m0 0L9 7"
-                stroke="#5DB85D" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+                stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
             </svg>
           </div>
           <div>
@@ -297,11 +347,11 @@
             <div class="nav-card-sub">Planificar y registrar salidas</div>
           </div>
         </button>
-        <button class="nav-card nav-card-asign">
-          <div class="nav-icon nav-icon-asign">
-            <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
+        <button class="nav-card">
+          <div class="nav-icon">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
               <path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2M9 11a4 4 0 100-8 4 4 0 000 8zM23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75"
-                stroke="#5B8DDE" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+                stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
             </svg>
           </div>
           <div>
@@ -317,9 +367,9 @@
     <!-- ── PIN ── -->
     <div>
       <div class="section-label">PIN pad (admin)</div>
-      <div class="pin-wrap" style="padding: 16px 0;">
-        <div id="logo-placeholder-3"></div>
-        <div style="font-size:22px;font-weight:700;color:var(--accent);">Admin</div>
+      <div class="pin-wrap">
+        <div id="logo-3"></div>
+        <div class="pin-label">Admin</div>
         <div class="pin-dots">
           <div class="pin-dot filled"></div>
           <div class="pin-dot filled"></div>
@@ -338,7 +388,7 @@
           <button class="pin-btn">9</button>
           <button class="pin-btn" style="font-size:16px;">⌫</button>
           <button class="pin-btn">0</button>
-          <button class="pin-btn" style="opacity:0;cursor:default;"></button>
+          <button class="pin-btn" style="opacity:0;cursor:default;pointer-events:none;"></button>
         </div>
       </div>
     </div>
@@ -348,36 +398,53 @@
     <!-- ── BOTONES ── -->
     <div>
       <div class="section-label">Botones</div>
-      <div style="display:flex;flex-direction:column;gap:10px;margin-top:12px;">
+      <div style="display:flex;flex-direction:column;gap:8px;margin-top:4px;">
         <button class="btn btn-primary">Guardar cambios</button>
         <div class="btn-row">
-          <button class="btn btn-secondary">Cancelar</button>
-          <button class="btn btn-primary">Confirmar</button>
+          <button class="btn btn-outline">Cancelar</button>
+          <button class="btn btn-secondary">Confirmar</button>
         </div>
-        <button class="btn btn-danger">Eliminar congregación</button>
+        <button class="btn btn-destructive">Eliminar congregación</button>
       </div>
     </div>
 
     <div class="divider"></div>
 
-    <!-- ── TAGS / BADGES ── -->
+    <!-- ── INPUTS ── -->
     <div>
-      <div class="section-label">Tags</div>
-      <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:12px;">
-        <span class="tag">Normal</span>
-        <span class="tag" style="background:rgba(93,184,93,0.1);color:#5DB85D;border-color:rgba(93,184,93,0.25);">En progreso</span>
-        <span class="tag" style="background:rgba(240,149,149,0.1);color:#F09595;border-color:rgba(240,149,149,0.25);">Peligroso</span>
+      <div class="section-label">Inputs</div>
+      <div style="display:flex;flex-direction:column;gap:12px;margin-top:4px;">
+        <div>
+          <label class="field-label">Nombre de congregación</label>
+          <input class="input" type="text" placeholder="Ej: Congregación Norte">
+        </div>
+        <div>
+          <label class="field-label">PIN encargado</label>
+          <input class="input" type="text" placeholder="4 dígitos" maxlength="4" inputmode="numeric">
+        </div>
       </div>
     </div>
 
-    <div style="height: var(--size-10);"></div>
+    <div class="divider"></div>
+
+    <!-- ── BADGES ── -->
+    <div>
+      <div class="section-label">Badges</div>
+      <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:4px;">
+        <span class="badge">Normal</span>
+        <span class="badge" style="color:oklch(0.696 0.17 162.48);border-color:oklch(0.696 0.17 162.48 / 0.3);background:oklch(0.696 0.17 162.48 / 0.08);">En progreso</span>
+        <span class="badge" style="color:oklch(0.637 0.237 25.331);border-color:oklch(0.637 0.237 25.331 / 0.3);background:oklch(0.637 0.237 25.331 / 0.08);">Peligroso</span>
+        <span class="badge badge-outline">Sin asignar</span>
+      </div>
+    </div>
+
+    <div style="height:40px;"></div>
 
   </div>
 
   <script src="ui-utils.js"></script>
   <script>
-    // Insertar logo en los 3 placeholders
-    document.querySelectorAll('[id^="logo-placeholder"]').forEach(el => {
+    document.querySelectorAll('[id^="logo-"]').forEach(el => {
       el.innerHTML = CS_LOGO_SVG;
     });
   </script>
