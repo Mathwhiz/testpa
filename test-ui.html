@@ -1,453 +1,185 @@
 <!DOCTYPE html>
-<html lang="es" class="dark">
+<html lang="es">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>UI Sandbox — shadcn style</title>
-  <link rel="icon" type="image/svg+xml" href="favicon.svg">
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
-
+  <title>Territory App</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
   <style>
-    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-
+    body { font-family: 'Inter', sans-serif; }
     :root {
-      --bg:       oklch(0.145 0 0);
-      --surface:  oklch(0.145 0 0);   /* mismo que bg — flat */
-      --surface-2:oklch(0.205 0 0);   /* inputs, hover */
-      --surface-3:oklch(0.232 0 0);   /* hover de cards */
-      --border:   oklch(0.269 0 0);
-      --border-2: oklch(0.32 0 0);
-      --text:     oklch(0.985 0 0);
-      --text-2:   oklch(0.708 0 0);
-      --text-3:   oklch(0.439 0 0);
-      --radius:   0.625rem;           /* 10px */
-      --accent:   oklch(0.985 0 0);   /* blanco en dark */
-    }
-
-    body {
-      background: var(--bg);
-      color: var(--text);
-      font-family: 'Inter', system-ui, sans-serif;
-      min-height: 100vh;
-      padding: 48px 16px;
-      -webkit-font-smoothing: antialiased;
-    }
-
-    /* ── Layout ── */
-    .page-title {
-      font-size: 11px;
-      font-weight: 600;
-      color: var(--text-3);
-      text-transform: uppercase;
-      letter-spacing: 0.1em;
-      margin-bottom: 40px;
-      text-align: center;
-    }
-
-    .sections {
-      display: flex;
-      flex-direction: column;
-      gap: 40px;
-      max-width: 360px;
-      margin: 0 auto;
-    }
-
-    .section-label {
-      font-size: 11px;
-      font-weight: 600;
-      color: var(--text-3);
-      text-transform: uppercase;
-      letter-spacing: 0.08em;
-      margin-bottom: 16px;
-    }
-
-    .divider {
-      height: 1px;
-      background: var(--border);
-    }
-
-    /* ── Cover ── */
-    .cover {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      gap: 6px;
-      padding: 24px 0 20px;
-    }
-
-    .cover-logo { margin-bottom: 8px; }
-
-    .cover-title {
-      font-size: 28px;
-      font-weight: 700;
-      letter-spacing: -0.6px;
-      color: var(--text);
-      text-align: center;
-    }
-
-    .cover-sub {
-      font-size: 13px;
-      color: var(--text-2);
-      text-align: center;
-    }
-
-    /* ── Cards — flat, borde fino ── */
-    .nav-card {
-      width: 100%;
-      background: var(--surface);
-      border: 1px solid var(--border);
-      border-radius: var(--radius);
-      padding: 14px 16px;
-      cursor: pointer;
-      display: flex;
-      align-items: center;
-      gap: 14px;
-      transition: background 0.12s, border-color 0.12s;
-      text-decoration: none;
-      color: inherit;
-      outline: none;
-      font-family: inherit;
-    }
-    .nav-card:hover {
-      background: var(--surface-3);
-      border-color: var(--border-2);
-    }
-    .nav-card:active { opacity: 0.7; }
-
-    .nav-icon {
-      width: 36px;
-      height: 36px;
-      border-radius: calc(var(--radius) - 2px);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      flex-shrink: 0;
-      background: var(--surface-2);
-      border: 1px solid var(--border);
-      font-size: 17px;
-    }
-
-    .nav-card-title { font-size: 15px; font-weight: 500; color: var(--text); margin-bottom: 1px; }
-    .nav-card-sub   { font-size: 12px; color: var(--text-2); }
-    .nav-card-id    { font-size: 11px; color: var(--text-3); font-family: monospace; }
-
-    .nav-arrow { color: var(--text-3); margin-left: auto; flex-shrink: 0; }
-
-    /* ── Botones ── */
-    .btn {
-      width: 100%;
-      padding: 10px 16px;
-      font-size: 14px;
-      font-weight: 500;
-      border-radius: var(--radius);
-      border: 1px solid transparent;
-      cursor: pointer;
-      transition: background 0.12s, opacity 0.12s;
-      font-family: inherit;
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      gap: 8px;
-    }
-    .btn:active { opacity: 0.8; }
-
-    .btn-primary {
-      background: var(--text);       /* blanco en dark */
-      color: oklch(0.145 0 0);       /* negro */
-      border-color: transparent;
-    }
-    .btn-primary:hover { background: oklch(0.9 0 0); }
-
-    .btn-secondary {
-      background: var(--surface-2);
-      color: var(--text);
-      border-color: var(--border);
-    }
-    .btn-secondary:hover { background: var(--surface-3); }
-
-    .btn-outline {
-      background: transparent;
-      color: var(--text);
-      border-color: var(--border);
-    }
-    .btn-outline:hover { background: var(--surface-2); }
-
-    .btn-destructive {
-      background: oklch(0.396 0.141 25.723);
-      color: oklch(0.637 0.237 25.331);
-      border-color: transparent;
-    }
-    .btn-destructive:hover { filter: brightness(1.1); }
-
-    .btn-row { display: flex; gap: 8px; }
-    .btn-row .btn { flex: 1; }
-
-    /* ── PIN ── */
-    .pin-wrap {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      gap: 20px;
-      padding: 16px 0;
-    }
-
-    .pin-label {
-      font-size: 20px;
-      font-weight: 600;
-      color: var(--text);
-      letter-spacing: -0.3px;
-    }
-
-    .pin-dots { display: flex; gap: 10px; }
-    .pin-dot {
-      width: 10px; height: 10px;
-      border-radius: 50%;
-      border: 1.5px solid var(--border-2);
-      background: transparent;
-      transition: .15s;
-    }
-    .pin-dot.filled { background: var(--text); border-color: var(--text); }
-
-    .pin-grid {
-      display: grid;
-      grid-template-columns: repeat(3, 72px);
-      gap: 8px;
-    }
-
-    .pin-btn {
-      background: var(--surface-2);
-      border: 1px solid var(--border);
-      border-radius: var(--radius);
-      width: 72px; height: 72px;
-      font-size: 22px;
-      font-weight: 400;
-      color: var(--text);
-      cursor: pointer;
-      transition: background 0.1s;
-      font-family: inherit;
-    }
-    .pin-btn:hover  { background: var(--surface-3); }
-    .pin-btn:active { opacity: 0.6; }
-
-    /* ── Badges ── */
-    .badge {
-      display: inline-flex;
-      align-items: center;
-      border-radius: calc(var(--radius) - 2px);
-      padding: 3px 10px;
-      font-size: 11px;
-      font-weight: 500;
-      border: 1px solid var(--border);
-      background: var(--surface-2);
-      color: var(--text-2);
-    }
-    .badge-outline {
-      background: transparent;
-      color: var(--text-2);
-      border-color: var(--border);
-    }
-
-    /* ── Input ── */
-    .input {
-      width: 100%;
-      background: var(--surface);
-      border: 1px solid var(--border);
-      border-radius: var(--radius);
-      padding: 9px 12px;
-      color: var(--text);
-      font-size: 14px;
-      font-family: inherit;
-      outline: none;
-      transition: border-color 0.12s;
-    }
-    .input:focus { border-color: var(--border-2); }
-    .input::placeholder { color: var(--text-3); }
-
-    .field-label {
-      display: block;
-      font-size: 12px;
-      font-weight: 500;
-      color: var(--text-2);
-      margin-bottom: 6px;
-    }
-
-    /* ── Footer ── */
-    .footer {
-      font-size: 11px;
-      color: var(--text-3);
-      text-align: center;
-      margin-top: 8px;
+      --bg: oklch(0.145 0 0);
+      --surface: oklch(0.145 0 0);
+      --border: oklch(0.269 0 0);
+      --border-hover: oklch(0.34 0 0);
+      --text: oklch(0.985 0 0);
+      --muted: oklch(0.708 0 0);
+      --subtle: oklch(0.439 0 0);
     }
   </style>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            bg: 'oklch(0.145 0 0)',
+            surface: 'oklch(0.145 0 0)',
+            border: 'oklch(0.269 0 0)',
+          }
+        }
+      }
+    }
+  </script>
 </head>
-<body>
+<body class="min-h-screen flex items-center justify-center p-4" style="background:var(--bg);color:var(--text);">
 
-  <p class="page-title">UI Sandbox — shadcn/neutral dark</p>
+  <!-- ── Screen 1: Congregation Selector ── -->
+  <div id="screen-1" class="w-full max-w-[360px] flex flex-col items-center gap-3">
 
-  <div class="sections">
-
-    <!-- ── PANTALLA INICIO ── -->
-    <div>
-      <div class="section-label">Pantalla inicio (index)</div>
-      <div class="cover">
-        <div class="cover-logo" id="logo-1"></div>
-        <div class="cover-title">Territory App</div>
-        <div class="cover-sub">Seleccioná tu congregación</div>
-      </div>
-
-      <div style="display:flex;flex-direction:column;gap:8px;">
-        <button class="nav-card">
-          <div class="nav-icon">🏠</div>
-          <div>
-            <div class="nav-card-title">Congregación Sur</div>
-            <div class="nav-card-id">sur</div>
-          </div>
-          <div class="nav-arrow">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M9 18l6-6-6-6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
-          </div>
-        </button>
-        <button class="nav-card">
-          <div class="nav-icon">🏡</div>
-          <div>
-            <div class="nav-card-title">Congregación Norte</div>
-            <div class="nav-card-id">norte</div>
-          </div>
-          <div class="nav-arrow">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M9 18l6-6-6-6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
-          </div>
-        </button>
-      </div>
-
-      <div class="footer" style="margin-top:20px;">Territory App · Sistema interno</div>
-    </div>
-
-    <div class="divider"></div>
-
-    <!-- ── MENÚ MÓDULOS ── -->
-    <div>
-      <div class="section-label">Selector de módulo (menu)</div>
-      <div class="cover">
-        <div class="cover-logo" id="logo-2"></div>
-        <div class="cover-title">Congregación Sur</div>
-        <div class="cover-sub">Seleccioná un módulo</div>
-      </div>
-
-      <div style="display:flex;flex-direction:column;gap:8px;">
-        <button class="nav-card">
-          <div class="nav-icon">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
-              <path d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-1.447-.894L15 9m0 8V9m0 0L9 7"
-                stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
-            </svg>
-          </div>
-          <div>
-            <div class="nav-card-title">Territorios</div>
-            <div class="nav-card-sub">Planificar y registrar salidas</div>
-          </div>
-        </button>
-        <button class="nav-card">
-          <div class="nav-icon">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
-              <path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2M9 11a4 4 0 100-8 4 4 0 000 8zM23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75"
-                stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
-            </svg>
-          </div>
-          <div>
-            <div class="nav-card-title">Asignaciones</div>
-            <div class="nav-card-sub">Acomodadores, sonido y más</div>
-          </div>
-        </button>
+    <!-- Logo -->
+    <div class="mb-4 flex flex-col items-center gap-3">
+      <svg width="64" height="64" viewBox="0 0 72 72" fill="none">
+        <defs>
+          <linearGradient id="hexGrad" x1="8" y1="4" x2="64" y2="68" gradientUnits="userSpaceOnUse">
+            <stop offset="0%" stop-color="#9B8FFF"/>
+            <stop offset="50%" stop-color="#7061E0"/>
+            <stop offset="100%" stop-color="#4A3FB5"/>
+          </linearGradient>
+          <linearGradient id="iconGrad" x1="18" y1="18" x2="54" y2="54" gradientUnits="userSpaceOnUse">
+            <stop offset="0%" stop-color="#C4BEFF"/>
+            <stop offset="100%" stop-color="#9B8FFF"/>
+          </linearGradient>
+        </defs>
+        <path d="M36 4 L64 20 L64 52 L36 68 L8 52 L8 20 Z" fill="url(#hexGrad)"/>
+        <path d="M36 9 L60 23 L60 49 L36 63 L12 49 L12 23 Z" fill="none" stroke="rgba(255,255,255,0.12)" stroke-width="1"/>
+        <circle cx="28" cy="27" r="6" fill="url(#iconGrad)"/>
+        <path d="M16 48 C16 40 22 36 28 36 C31 36 33.5 37.2 35.5 39" stroke="url(#iconGrad)" stroke-width="2.8" stroke-linecap="round" fill="none"/>
+        <circle cx="40" cy="25" r="7" fill="url(#iconGrad)"/>
+        <path d="M26 50 C27 41.5 33 37 40 37 C47 37 53 41.5 54 50" stroke="url(#iconGrad)" stroke-width="3.2" stroke-linecap="round" fill="none"/>
+      </svg>
+      <div>
+        <h1 class="text-2xl font-semibold tracking-tight text-center" style="color:var(--text);">Territory App</h1>
+        <p class="text-sm text-center mt-0.5" style="color:var(--muted);">Seleccioná tu congregación</p>
       </div>
     </div>
 
-    <div class="divider"></div>
-
-    <!-- ── PIN ── -->
-    <div>
-      <div class="section-label">PIN pad (admin)</div>
-      <div class="pin-wrap">
-        <div id="logo-3"></div>
-        <div class="pin-label">Admin</div>
-        <div class="pin-dots">
-          <div class="pin-dot filled"></div>
-          <div class="pin-dot filled"></div>
-          <div class="pin-dot"></div>
-          <div class="pin-dot"></div>
-        </div>
-        <div class="pin-grid">
-          <button class="pin-btn">1</button>
-          <button class="pin-btn">2</button>
-          <button class="pin-btn">3</button>
-          <button class="pin-btn">4</button>
-          <button class="pin-btn">5</button>
-          <button class="pin-btn">6</button>
-          <button class="pin-btn">7</button>
-          <button class="pin-btn">8</button>
-          <button class="pin-btn">9</button>
-          <button class="pin-btn" style="font-size:16px;">⌫</button>
-          <button class="pin-btn">0</button>
-          <button class="pin-btn" style="opacity:0;cursor:default;pointer-events:none;"></button>
-        </div>
+    <!-- Congregation cards -->
+    <button onclick="goToScreen2('Sur')" class="w-full flex items-center gap-3 px-4 py-3.5 rounded-[10px] border text-left transition-colors duration-150 group"
+      style="background:var(--surface);border-color:var(--border);"
+      onmouseenter="this.style.borderColor='var(--border-hover)';this.style.background='oklch(0.19 0 0)'"
+      onmouseleave="this.style.borderColor='var(--border)';this.style.background='var(--surface)'">
+      <div class="w-9 h-9 rounded-[8px] flex items-center justify-center flex-shrink-0 text-base" style="background:oklch(0.205 0 0);border:1px solid var(--border);">🏠</div>
+      <div class="flex-1">
+        <div class="text-sm font-medium" style="color:var(--text);">Congregación Sur</div>
+        <div class="text-xs font-mono mt-0.5" style="color:var(--subtle);">sur</div>
       </div>
-    </div>
+      <i data-lucide="chevron-right" class="w-4 h-4 flex-shrink-0" style="color:var(--subtle);stroke-width:1.5"></i>
+    </button>
 
-    <div class="divider"></div>
-
-    <!-- ── BOTONES ── -->
-    <div>
-      <div class="section-label">Botones</div>
-      <div style="display:flex;flex-direction:column;gap:8px;margin-top:4px;">
-        <button class="btn btn-primary">Guardar cambios</button>
-        <div class="btn-row">
-          <button class="btn btn-outline">Cancelar</button>
-          <button class="btn btn-secondary">Confirmar</button>
-        </div>
-        <button class="btn btn-destructive">Eliminar congregación</button>
+    <button onclick="goToScreen2('Norte')" class="w-full flex items-center gap-3 px-4 py-3.5 rounded-[10px] border text-left transition-colors duration-150"
+      style="background:var(--surface);border-color:var(--border);"
+      onmouseenter="this.style.borderColor='var(--border-hover)';this.style.background='oklch(0.19 0 0)'"
+      onmouseleave="this.style.borderColor='var(--border)';this.style.background='var(--surface)'">
+      <div class="w-9 h-9 rounded-[8px] flex items-center justify-center flex-shrink-0 text-base" style="background:oklch(0.205 0 0);border:1px solid var(--border);">🏡</div>
+      <div class="flex-1">
+        <div class="text-sm font-medium" style="color:var(--text);">Congregación Norte</div>
+        <div class="text-xs font-mono mt-0.5" style="color:var(--subtle);">norte</div>
       </div>
-    </div>
+      <i data-lucide="chevron-right" class="w-4 h-4 flex-shrink-0" style="color:var(--subtle);stroke-width:1.5"></i>
+    </button>
 
-    <div class="divider"></div>
-
-    <!-- ── INPUTS ── -->
-    <div>
-      <div class="section-label">Inputs</div>
-      <div style="display:flex;flex-direction:column;gap:12px;margin-top:4px;">
-        <div>
-          <label class="field-label">Nombre de congregación</label>
-          <input class="input" type="text" placeholder="Ej: Congregación Norte">
-        </div>
-        <div>
-          <label class="field-label">PIN encargado</label>
-          <input class="input" type="text" placeholder="4 dígitos" maxlength="4" inputmode="numeric">
-        </div>
-      </div>
-    </div>
-
-    <div class="divider"></div>
-
-    <!-- ── BADGES ── -->
-    <div>
-      <div class="section-label">Badges</div>
-      <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:4px;">
-        <span class="badge">Normal</span>
-        <span class="badge" style="color:oklch(0.696 0.17 162.48);border-color:oklch(0.696 0.17 162.48 / 0.3);background:oklch(0.696 0.17 162.48 / 0.08);">En progreso</span>
-        <span class="badge" style="color:oklch(0.637 0.237 25.331);border-color:oklch(0.637 0.237 25.331 / 0.3);background:oklch(0.637 0.237 25.331 / 0.08);">Peligroso</span>
-        <span class="badge badge-outline">Sin asignar</span>
-      </div>
-    </div>
-
-    <div style="height:40px;"></div>
-
+    <p class="text-xs mt-2" style="color:oklch(0.32 0 0);">Territory App · Sistema interno</p>
   </div>
 
-  <script src="ui-utils.js"></script>
-  <script>
-    document.querySelectorAll('[id^="logo-"]').forEach(el => {
-      el.innerHTML = CS_LOGO_SVG;
-    });
-  </script>
+  <!-- ── Screen 2: Module Selector ── -->
+  <div id="screen-2" class="w-full max-w-[360px] flex flex-col items-center gap-3 hidden">
 
+    <!-- Back -->
+    <button onclick="goToScreen1()" class="self-start flex items-center gap-1.5 text-sm mb-1 transition-colors duration-150"
+      style="color:var(--subtle);"
+      onmouseenter="this.style.color='var(--muted)'"
+      onmouseleave="this.style.color='var(--subtle)'">
+      <i data-lucide="arrow-left" class="w-4 h-4" style="stroke-width:1.5"></i>
+      Volver
+    </button>
+
+    <!-- Logo -->
+    <div class="mb-4 flex flex-col items-center gap-3">
+      <svg width="64" height="64" viewBox="0 0 72 72" fill="none">
+        <defs>
+          <linearGradient id="hexGrad2" x1="8" y1="4" x2="64" y2="68" gradientUnits="userSpaceOnUse">
+            <stop offset="0%" stop-color="#9B8FFF"/>
+            <stop offset="50%" stop-color="#7061E0"/>
+            <stop offset="100%" stop-color="#4A3FB5"/>
+          </linearGradient>
+          <linearGradient id="iconGrad2" x1="18" y1="18" x2="54" y2="54" gradientUnits="userSpaceOnUse">
+            <stop offset="0%" stop-color="#C4BEFF"/>
+            <stop offset="100%" stop-color="#9B8FFF"/>
+          </linearGradient>
+        </defs>
+        <path d="M36 4 L64 20 L64 52 L36 68 L8 52 L8 20 Z" fill="url(#hexGrad2)"/>
+        <path d="M36 9 L60 23 L60 49 L36 63 L12 49 L12 23 Z" fill="none" stroke="rgba(255,255,255,0.12)" stroke-width="1"/>
+        <circle cx="28" cy="27" r="6" fill="url(#iconGrad2)"/>
+        <path d="M16 48 C16 40 22 36 28 36 C31 36 33.5 37.2 35.5 39" stroke="url(#iconGrad2)" stroke-width="2.8" stroke-linecap="round" fill="none"/>
+        <circle cx="40" cy="25" r="7" fill="url(#iconGrad2)"/>
+        <path d="M26 50 C27 41.5 33 37 40 37 C47 37 53 41.5 54 50" stroke="url(#iconGrad2)" stroke-width="3.2" stroke-linecap="round" fill="none"/>
+      </svg>
+      <div>
+        <h1 id="congre-name" class="text-2xl font-semibold tracking-tight text-center" style="color:var(--text);">Congregación Sur</h1>
+        <p class="text-sm text-center mt-0.5" style="color:var(--muted);">Seleccioná un módulo</p>
+      </div>
+    </div>
+
+    <!-- Territorios -->
+    <button class="w-full flex items-center gap-3 px-4 py-3.5 rounded-[10px] border text-left transition-colors duration-150"
+      style="background:var(--surface);border-color:var(--border);"
+      onmouseenter="this.style.borderColor='oklch(0.32 0.04 145)';this.style.background='oklch(0.175 0.01 145)'"
+      onmouseleave="this.style.borderColor='var(--border)';this.style.background='var(--surface)'">
+      <div class="w-9 h-9 rounded-[8px] flex items-center justify-center flex-shrink-0" style="background:oklch(0.18 0.03 145);border:1px solid oklch(0.28 0.04 145);">
+        <i data-lucide="map" class="w-4 h-4" style="color:oklch(0.65 0.15 145);stroke-width:1.5"></i>
+      </div>
+      <div class="flex-1">
+        <div class="text-sm font-medium" style="color:var(--text);">Territorios</div>
+        <div class="text-xs mt-0.5" style="color:var(--muted);">Planificar y registrar salidas</div>
+      </div>
+      <i data-lucide="chevron-right" class="w-4 h-4 flex-shrink-0" style="color:var(--subtle);stroke-width:1.5"></i>
+    </button>
+
+    <!-- Asignaciones -->
+    <button class="w-full flex items-center gap-3 px-4 py-3.5 rounded-[10px] border text-left transition-colors duration-150"
+      style="background:var(--surface);border-color:var(--border);"
+      onmouseenter="this.style.borderColor='oklch(0.32 0.04 240)';this.style.background='oklch(0.175 0.015 240)'"
+      onmouseleave="this.style.borderColor='var(--border)';this.style.background='var(--surface)'">
+      <div class="w-9 h-9 rounded-[8px] flex items-center justify-center flex-shrink-0" style="background:oklch(0.18 0.03 240);border:1px solid oklch(0.28 0.04 240);">
+        <i data-lucide="users" class="w-4 h-4" style="color:oklch(0.65 0.13 240);stroke-width:1.5"></i>
+      </div>
+      <div class="flex-1">
+        <div class="text-sm font-medium" style="color:var(--text);">Asignaciones</div>
+        <div class="text-xs mt-0.5" style="color:var(--muted);">Acomodadores, sonido y más</div>
+      </div>
+      <i data-lucide="chevron-right" class="w-4 h-4 flex-shrink-0" style="color:var(--subtle);stroke-width:1.5"></i>
+    </button>
+
+    <p class="text-xs mt-2" style="color:oklch(0.32 0 0);" id="congre-footer">Congregación Sur · App interna</p>
+  </div>
+
+  <script>
+    lucide.createIcons();
+
+    function goToScreen2(name) {
+      document.getElementById('screen-1').classList.add('hidden');
+      document.getElementById('screen-2').classList.remove('hidden');
+      document.getElementById('congre-name').textContent = 'Congregación ' + name;
+      document.getElementById('congre-footer').textContent = 'Congregación ' + name + ' · App interna';
+      lucide.createIcons();
+    }
+
+    function goToScreen1() {
+      document.getElementById('screen-2').classList.add('hidden');
+      document.getElementById('screen-1').classList.remove('hidden');
+    }
+  </script>
 </body>
 </html>
