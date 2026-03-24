@@ -198,7 +198,10 @@ function startWizard(prefill = null) {
   document.getElementById('btn-crear').disabled          = !isEdit;
   document.getElementById('btn-crear').textContent       = isEdit ? 'Guardar →' : 'Crear →';
   document.getElementById('wizard-status').textContent   = '';
-  document.getElementById('field-id').style.display      = isEdit ? 'none' : '';
+  document.getElementById('field-id').style.display      = '';
+  document.getElementById('field-id-hint').textContent   = isEdit
+    ? 'Cambiar el ID moverá todos los datos a la nueva dirección.'
+    : 'Solo minúsculas, números y guiones. No se puede cambiar después.';
   document.getElementById('step0-title').textContent     = isEdit ? 'Editar congregación' : 'Nueva congregación';
   document.getElementById('step0-sub').textContent       = isEdit ? 'Editando datos básicos' : 'Paso 1 de 3 · Datos básicos';
 
@@ -270,13 +273,13 @@ function wizardNext() {
     const nombre = document.getElementById('w-nombre').value.trim();
     const id     = document.getElementById('w-id').value.trim();
     const pin    = document.getElementById('w-pin').value.trim();
-    if (!nombre)                        { uiAlert('Ingresá el nombre de la congregación.'); return; }
-    if (!editingCongreId && !id)        { uiAlert('Ingresá un ID para la congregación.'); return; }
-    if (!editingCongreId && !/^[a-z0-9][a-z0-9-]*$/.test(id)) {
+    if (!nombre)                             { uiAlert('Ingresá el nombre de la congregación.'); return; }
+    if (!id)                                 { uiAlert('Ingresá un ID para la congregación.'); return; }
+    if (!/^[a-z0-9][a-z0-9-]*$/.test(id))  {
       uiAlert('El ID solo puede tener minúsculas, números y guiones, y debe empezar con una letra o número.');
       return;
     }
-    if (!/^\d{4}$/.test(pin))           { uiAlert('El PIN del encargado debe ser 4 dígitos numéricos.'); return; }
+    if (!/^\d{4}$/.test(pin))               { uiAlert('El PIN del encargado debe ser 4 dígitos numéricos.'); return; }
   }
   if (wizardStep === 1) {
     syncGruposFromDOM();
@@ -377,6 +380,41 @@ function parseKML(text) {
 }
 
 // ─────────────────────────────────────────
+//   RENAME CONGREGACIÓN (copia + elimina)
+// ─────────────────────────────────────────
+async function renameCongre(oldId, newId) {
+  const existing = await getDoc(doc(db, 'congregaciones', newId));
+  if (existing.exists()) throw new Error(`Ya existe una congregación con el ID "${newId}".`);
+
+  const oldSnap = await getDoc(doc(db, 'congregaciones', oldId));
+  await setDoc(doc(db, 'congregaciones', newId), oldSnap.data());
+
+  const subcols = ['grupos', 'territorios', 'historial', 'salidas', 'publicadores', 'asignaciones'];
+  for (const sub of subcols) {
+    const snap = await getDocs(collection(db, 'congregaciones', oldId, sub));
+    if (snap.empty) continue;
+    const docs = snap.docs;
+    for (let i = 0; i < docs.length; i += 400) {
+      const batch = writeBatch(db);
+      docs.slice(i, i + 400).forEach(d => batch.set(doc(db, 'congregaciones', newId, sub, d.id), d.data()));
+      await batch.commit();
+    }
+  }
+
+  for (const sub of subcols) {
+    const snap = await getDocs(collection(db, 'congregaciones', oldId, sub));
+    if (snap.empty) continue;
+    const docs = snap.docs;
+    for (let i = 0; i < docs.length; i += 400) {
+      const batch = writeBatch(db);
+      docs.slice(i, i + 400).forEach(d => batch.delete(d.ref));
+      await batch.commit();
+    }
+  }
+  await deleteDoc(doc(db, 'congregaciones', oldId));
+}
+
+// ─────────────────────────────────────────
 //   CREAR CONGREGACIÓN
 // ─────────────────────────────────────────
 async function crearCongregacion(skipKml) {
@@ -398,6 +436,14 @@ async function crearCongregacion(skipKml) {
 
     if (editingCongreId) {
       // ── MODO EDICIÓN ──
+      const newId = document.getElementById('w-id').value.trim();
+      if (newId !== editingCongreId) {
+        uiLoading.show('Renombrando congregación...');
+        const oldId = editingCongreId;
+        await renameCongre(oldId, newId);
+        if (sessionStorage.getItem('congreId') === oldId) sessionStorage.setItem('congreId', newId);
+        editingCongreId = newId;
+      }
       congreId = editingCongreId;
       await updateDoc(doc(db, 'congregaciones', congreId), { nombre, pinEncargado });
 

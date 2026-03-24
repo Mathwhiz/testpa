@@ -171,10 +171,8 @@
   <!-- ── VISTA: ELEGIR MÓDULO ── -->
   <div id="view-menu" class="view" style="display:none">
     <div class="menu-wrap">
-      <button class="menu-back" onclick="volverACongres()">‹ Congregaciones</button>
-
       <div class="logo">
-        <div class="cs-logo-title" id="menu-titulo" style="font-size:26px;">—</div>
+        <div class="cs-logo-title" id="menu-titulo" style="font-size:34px;">—</div>
         <div class="cs-logo-sub">Seleccioná un módulo</div>
       </div>
 
@@ -208,6 +206,9 @@
     </div>
   </div>
 
+  <!-- ── Botón volver a congregaciones (fijo, fuera de views) ── -->
+  <button id="btn-menu-back" class="menu-back" onclick="volverACongres()" style="display:none">‹ Congregaciones</button>
+
   <!-- ── Botón Admin (fijo) ── -->
   <a href="admin.html" class="btn-admin" title="Admin">
     <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
@@ -235,7 +236,7 @@
       const words = nombre.normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().split(/\s+/);
       const meaningful = words.filter(w => !STOP.has(w));
       const src = meaningful.length ? meaningful : words;
-      return src.slice(0,2).map(w => w.charAt(0).toUpperCase()).join('');
+      return src[0].charAt(0).toUpperCase();
     }
 
     function colorPara(id) {
@@ -253,12 +254,14 @@
       el.style.animation = '';
     }
 
-    const btnAdmin = document.querySelector('.btn-admin');
+    const btnAdmin    = document.querySelector('.btn-admin');
+    const btnBack     = document.getElementById('btn-menu-back');
 
     function mostrarMenu(nombre) {
       document.getElementById('menu-titulo').textContent = nombre;
       document.getElementById('menu-footer').textContent = nombre + ' · App interna';
       btnAdmin.classList.add('hidden');
+      btnBack.style.display = '';
       showView('view-menu');
     }
 
@@ -266,6 +269,7 @@
       sessionStorage.removeItem('congreId');
       sessionStorage.removeItem('congreNombre');
       btnAdmin.classList.remove('hidden');
+      btnBack.style.display = 'none';
       showView('view-congres');
     };
 

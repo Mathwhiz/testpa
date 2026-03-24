@@ -92,7 +92,10 @@
 
   <!-- ── PIN ── -->
   <div id="view-pin" class="app">
-    <div class="pin-wrap">
+    <div style="padding-top:1rem;">
+      <a href="index.html" style="display:inline-flex;align-items:center;gap:6px;font-size:13px;color:#666;text-decoration:none;padding:8px 14px;background:#252525;border:1px solid rgba(255,255,255,0.1);border-radius:10px;">‹ Congregaciones</a>
+    </div>
+    <div class="pin-wrap" style="min-height:calc(100vh - 60px)">
       <div style="text-align:center;display:flex;flex-direction:column;align-items:center;gap:10px;">
         <div class="cs-logo-placeholder"></div>
         <div class="pin-title">Admin</div>
@@ -124,7 +127,7 @@
 
   <!-- ── DASHBOARD ── -->
   <div id="view-dashboard" class="app" style="display:none">
-    <a href="index.html" style="display:inline-flex;align-items:center;gap:6px;font-size:13px;color:#aaa;text-decoration:none;margin-bottom:20px;padding:8px 14px;background:#252525;border:1px solid rgba(255,255,255,0.15);border-radius:10px;width:fit-content;">← Inicio</a>
+    <a href="index.html" style="display:inline-flex;align-items:center;gap:6px;font-size:13px;color:#aaa;text-decoration:none;margin-bottom:20px;padding:8px 14px;background:#252525;border:1px solid rgba(255,255,255,0.15);border-radius:10px;width:fit-content;">‹ Congregaciones</a>
     <p class="section-title">Congregaciones</p>
     <p class="section-sub">Panel de administración</p>
     <div id="dash-loading" class="loading-wrap"><div class="spinner"></div><div>Cargando...</div></div>
@@ -134,6 +137,7 @@
 
   <!-- ── WIZARD ── -->
   <div id="view-wizard" class="app" style="display:none">
+    <a href="#" onclick="showView('view-dashboard');return false;" style="display:inline-flex;align-items:center;gap:6px;font-size:13px;color:#666;text-decoration:none;margin-bottom:20px;padding:8px 14px;background:#252525;border:1px solid rgba(255,255,255,0.1);border-radius:10px;width:fit-content;">‹ Dashboard</a>
     <div class="step-indicator">
       <div class="step-dot" id="sdot-0"></div>
       <div class="step-dot" id="sdot-1"></div>
@@ -151,7 +155,7 @@
       <div class="field" id="field-id">
         <label>ID único</label>
         <input type="text" id="w-id" placeholder="ej: norte" autocomplete="off" oninput="onIdInput()" style="font-family:monospace;">
-        <div style="font-size:11px;color:#555;margin-top:4px;">Solo minúsculas, números y guiones. No se puede cambiar después.</div>
+        <div id="field-id-hint" style="font-size:11px;color:#555;margin-top:4px;">Solo minúsculas, números y guiones. No se puede cambiar después.</div>
       </div>
       <div class="field">
         <label>PIN del encargado de asignaciones</label>
