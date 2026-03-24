@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Territory App</title>
+  <title>AppJW</title>
   <link rel="icon" type="image/svg+xml" href="favicon.svg">
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -16,6 +16,14 @@
       color: #eee;
       font-family: system-ui, sans-serif;
     }
+
+    .view {
+      width: 100%;
+      display: flex;
+      justify-content: center;
+      animation: fadeIn 0.2s ease;
+    }
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
 
     .wrap {
       display: flex;
@@ -35,6 +43,7 @@
       margin-bottom: 18px;
     }
 
+    /* ── Lista de congregaciones ── */
     #congre-list {
       width: 100%;
       display: flex;
@@ -54,7 +63,6 @@
       align-items: center;
       gap: 14px;
       transition: border-color 0.18s, background 0.18s, transform 0.1s, box-shadow 0.18s;
-      text-decoration: none;
       color: inherit;
       box-shadow: 0 2px 12px rgba(0,0,0,0.25);
       outline: none;
@@ -71,18 +79,43 @@
     .congre-icon {
       width: 46px; height: 46px; border-radius: 13px;
       display: flex; align-items: center; justify-content: center; flex-shrink: 0;
-      background: #1a2030;
-      font-size: 1.4rem;
+      font-size: 18px; font-weight: 700;
     }
 
-    .congre-info { flex: 1; }
+    .congre-info { flex: 1; min-width: 0; }
     .congre-nombre { font-size: 17px; font-weight: 600; color: #e8e8e8; margin-bottom: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
     .congre-id { font-size: 13px; color: #666; }
-    .congre-arrow { color: #444; font-size: 1.3rem; }
+    .congre-arrow { color: #444; font-size: 1.3rem; flex-shrink: 0; }
 
     .loading { color: #555; font-size: 0.9rem; text-align: center; padding: 40px 0; }
-    .error { color: #e07070; font-size: 0.85rem; text-align: center; padding: 20px 0; }
+    .error   { color: #e07070; font-size: 0.85rem; text-align: center; padding: 20px 0; }
 
+    /* ── Menú de módulos ── */
+    .menu-wrap {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 12px;
+      width: 100%;
+      max-width: 320px;
+      padding: 2rem 1rem;
+    }
+
+    .menu-back {
+      align-self: flex-start;
+      background: #252525;
+      border: 1px solid rgba(255,255,255,0.15);
+      border-radius: 10px;
+      color: #aaa;
+      font-size: 13px;
+      cursor: pointer;
+      padding: 7px 13px;
+      transition: color .15s, border-color .15s, background .15s;
+      font-family: inherit;
+    }
+    .menu-back:hover { color: #eee; border-color: rgba(255,255,255,0.3); background: #2e2e2e; }
+
+    /* ── Botón admin ── */
     .btn-admin {
       position: fixed;
       bottom: 20px;
@@ -105,20 +138,62 @@
 </head>
 <body>
 
-  <div class="wrap">
-    <div class="logo">
-      <div class="cs-logo-placeholder"></div>
-      <div class="cs-logo-title">AppJW</div>
-      <div class="cs-logo-sub">Seleccioná tu congregación</div>
+  <!-- ── VISTA: ELEGIR CONGREGACIÓN ── -->
+  <div id="view-congres" class="view">
+    <div class="wrap">
+      <div class="logo">
+        <div class="cs-logo-placeholder"></div>
+        <div class="cs-logo-title">AppJW</div>
+        <div class="cs-logo-sub">Seleccioná tu congregación</div>
+      </div>
+      <div id="congre-list">
+        <div class="loading">Cargando congregaciones…</div>
+      </div>
+      <div class="cs-footer">AppJW · Sistema interno</div>
     </div>
-
-    <div id="congre-list">
-      <div class="loading">Cargando congregaciones…</div>
-    </div>
-
-    <div class="cs-footer">Territory App · Sistema interno</div>
   </div>
 
+  <!-- ── VISTA: ELEGIR MÓDULO ── -->
+  <div id="view-menu" class="view" style="display:none">
+    <div class="menu-wrap">
+      <button class="menu-back" onclick="volverACongres()">‹ Congregaciones</button>
+
+      <div class="logo">
+        <div class="cs-logo-title" id="menu-titulo" style="font-size:26px;">—</div>
+        <div class="cs-logo-sub">Seleccioná un módulo</div>
+      </div>
+
+      <a class="cs-nav-card cs-nav-card-terr" href="territorios/index.html">
+        <div class="cs-nav-icon cs-nav-icon-terr">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
+            <path d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-1.447-.894L15 9m0 8V9m0 0L9 7"
+              stroke="#5DB85D" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </div>
+        <div>
+          <div class="cs-nav-title">Territorios</div>
+          <div class="cs-nav-sub">Planificar y registrar salidas</div>
+        </div>
+      </a>
+
+      <a class="cs-nav-card cs-nav-card-asign" href="asignaciones/index.html">
+        <div class="cs-nav-icon cs-nav-icon-asign">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
+            <path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2M9 11a4 4 0 100-8 4 4 0 000 8zM23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75"
+              stroke="#5B8DDE" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </div>
+        <div>
+          <div class="cs-nav-title">Asignaciones</div>
+          <div class="cs-nav-sub">Acomodadores, sonido y más</div>
+        </div>
+      </a>
+
+      <div class="cs-footer" id="menu-footer"></div>
+    </div>
+  </div>
+
+  <!-- ── Botón Admin (fijo) ── -->
   <a href="admin.html" class="btn-admin" title="Admin">
     <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
       <circle cx="12" cy="12" r="3" stroke="currentColor" stroke-width="1.8"/>
@@ -131,57 +206,86 @@
     import { db } from './firebase.js';
     import { collection, getDocs } from "https://www.gstatic.com/firebasejs/11.6.0/firebase-firestore.js";
 
-    const list = document.getElementById('congre-list');
+    const PALETA = [
+      { bg: 'rgba(55,138,221,0.18)',  border: 'rgba(55,138,221,0.35)',  color: '#378ADD' },
+      { bg: 'rgba(151,196,89,0.18)',  border: 'rgba(151,196,89,0.35)',  color: '#97C459' },
+      { bg: 'rgba(127,119,221,0.18)', border: 'rgba(127,119,221,0.35)', color: '#7F77DD' },
+      { bg: 'rgba(239,159,39,0.18)',  border: 'rgba(239,159,39,0.35)',  color: '#EF9F27' },
+      { bg: 'rgba(29,158,117,0.18)',  border: 'rgba(29,158,117,0.35)',  color: '#1D9E75' },
+      { bg: 'rgba(216,90,48,0.18)',   border: 'rgba(216,90,48,0.35)',   color: '#D85A30' },
+    ];
 
-    const ICONOS = {
-      sur:   '🏠',
-      norte: '🏡',
-      este:  '🏘️',
-      oeste: '🏗️',
+    function colorPara(id) {
+      let h = 0;
+      for (let i = 0; i < id.length; i++) h = (h * 31 + id.charCodeAt(i)) & 0xffff;
+      return PALETA[h % PALETA.length];
+    }
+
+    function showView(id) {
+      document.querySelectorAll('.view').forEach(v => { v.style.display = 'none'; });
+      const el = document.getElementById(id);
+      el.style.animation = 'none';
+      el.style.display = 'flex';
+      el.offsetHeight; // forzar reflow para reiniciar animación
+      el.style.animation = '';
+    }
+
+    function mostrarMenu(nombre) {
+      document.getElementById('menu-titulo').textContent = nombre;
+      document.getElementById('menu-footer').textContent = nombre + ' · App interna';
+      showView('view-menu');
+    }
+
+    window.volverACongres = function() {
+      sessionStorage.removeItem('congreId');
+      sessionStorage.removeItem('congreNombre');
+      showView('view-congres');
     };
 
     async function cargarCongres() {
+      const list = document.getElementById('congre-list');
       try {
         const snap = await getDocs(collection(db, 'congregaciones'));
-
         if (snap.empty) {
           list.innerHTML = '<div class="error">No hay congregaciones registradas.</div>';
           return;
         }
-
         list.innerHTML = '';
-
         snap.forEach(doc => {
-          const data   = doc.data();
-          const id     = doc.id;
-          const nombre = data.nombre || id;
-          const icono  = ICONOS[id] || '⛪';
+          const data    = doc.data();
+          const id      = doc.id;
+          const nombre  = data.nombre || id;
+          const inicial = nombre.charAt(0).toUpperCase();
+          const c       = colorPara(id);
 
           const card = document.createElement('button');
           card.className = 'congre-card';
           card.innerHTML = `
-            <div class="congre-icon">${icono}</div>
+            <div class="congre-icon" style="background:${c.bg};border:1px solid ${c.border};color:${c.color};">${inicial}</div>
             <div class="congre-info">
               <div class="congre-nombre">${nombre}</div>
               <div class="congre-id">${id}</div>
             </div>
             <div class="congre-arrow">›</div>
           `;
-
-          card.addEventListener('click', () => elegirCongre(id, nombre));
+          card.addEventListener('click', () => {
+            sessionStorage.setItem('congreId',     id);
+            sessionStorage.setItem('congreNombre', nombre);
+            mostrarMenu(nombre);
+          });
           list.appendChild(card);
         });
-
       } catch (err) {
         console.error(err);
         list.innerHTML = `<div class="error">Error al cargar: ${err.message}</div>`;
       }
     }
 
-    function elegirCongre(id, nombre) {
-      sessionStorage.setItem('congreId',     id);
-      sessionStorage.setItem('congreNombre', nombre);
-      window.location.href = './menu.html';
+    // Si ya hay sesión activa → ir directo al menú
+    const savedId     = sessionStorage.getItem('congreId');
+    const savedNombre = sessionStorage.getItem('congreNombre');
+    if (savedId && savedNombre) {
+      mostrarMenu(savedNombre);
     }
 
     cargarCongres();
