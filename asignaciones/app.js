@@ -1,6 +1,16 @@
-const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxy3WmKkJjSsEXM8qI0lCUdQn76o2v-55zZavlx_lJ_-SVZUip4vFsl0WXAPcPgMfDE/exec';
+import { db } from '../firebase.js';
+import {
+  collection, doc, getDocs, addDoc, updateDoc, deleteDoc,
+  query, where, orderBy
+} from "https://www.gstatic.com/firebasejs/11.6.0/firebase-firestore.js";
 
-// ── Roles que aparecen en la tabla semanal (asignaciones por reunión) ──
+const CONGRE_ID = sessionStorage.getItem('congreId') || 'sur';
+
+function congreRef()  { return doc(db, 'congregaciones', CONGRE_ID); }
+function asigCol()    { return collection(db, 'congregaciones', CONGRE_ID, 'asignaciones'); }
+function pubCol()     { return collection(db, 'congregaciones', CONGRE_ID, 'publicadores'); }
+
+// ── Roles que aparecen en la tabla semanal ──
 const ROLES_LABELS = {
   LECTOR:               'Lector',
   SONIDO_1:             'Sonido 1',
@@ -21,7 +31,7 @@ const ROL_LISTA_MAP = {
   MICROFONISTAS_2: 'MICROFONISTAS_1',
 };
 
-// ── Roles que SOLO existen en la lista de hermanos (no en tabla semanal) ──
+// Roles que SOLO existen en la lista de hermanos (no en tabla semanal)
 const ROLES_LISTA_EXTRA = {
   CONDUCTOR_GRUPO_1:     'Conductor Grupo 1',
   CONDUCTOR_GRUPO_2:     'Conductor Grupo 2',
@@ -30,7 +40,6 @@ const ROLES_LISTA_EXTRA = {
   CONDUCTOR_CONGREGACION:'Conductor Congregación',
 };
 
-// Todos los roles disponibles para la gestión de hermanos
 const ROLES_OPCIONES = [
   { key: 'LECTOR',                label: 'Lector' },
   { key: 'SONIDO',                label: 'Sonido' },
@@ -57,11 +66,26 @@ const DIA_BG = {
   'Jueves':'#2e1e00','Viernes':'#1a2e0a','Sábado':'#1e1a2e','Domingo':'#2e1a1a',
 };
 
-/* ─── PIN hardcodeado ─── */
-const PIN_ENCARGADO = '1234';
+/* ─── PIN ─── */
+// El PIN del encargado debería venir de Firestore (congregaciones/sur).
+// Por ahora lo leemos al iniciar, con fallback hardcodeado.
+let PIN_ENCARGADO = '1234';
+
+(async function cargarConfig() {
+  try {
+    const snap = await getDocs(query(collection(db, 'congregaciones'), where('__name__', '==', CONGRE_ID)));
+    if (!snap.empty) {
+      const cfg = snap.docs[0].data();
+      if (cfg.pinEncargado) PIN_ENCARGADO = cfg.pinEncargado;
+    }
+  } catch(e) { /* fallback al hardcodeado */ }
+})();
 
 /* ─── Estado global ─── */
+// hermanos: { [rolKey]: [nombre, ...] } — igual al formato original para compatibilidad con renderEditar
 let hermanos      = {};
+// listaHermanos para gestionar: [{ id, nombre, roles }]
+let listaHermanos = [];
 let todasLasFilas = [];
 let autoResult    = [];
 let esEncargado   = false;
@@ -91,6 +115,10 @@ function showView(id) {
 /* ─── Utilidades fecha ─── */
 const norm = s => s.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
 
+function fmtDateLocal(d) {
+  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+}
+
 function parseFecha(str) {
   if (!str) return null;
   const m = str.match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{2,4})$/);
@@ -109,6 +137,12 @@ function fmtFecha(d) {
   return `${String(d.getDate()).padStart(2,'0')}/${String(d.getMonth()+1).padStart(2,'0')}/${String(d.getFullYear()).slice(-2)}`;
 }
 
+// Fecha YYYY-MM-DD → objeto Date local
+function isoToDate(iso) {
+  if (!iso) return null;
+  return new Date(iso + 'T00:00:00');
+}
+
 function getLunesDeHoy() {
   const now = new Date();
   const day = now.getDay();
@@ -124,6 +158,7 @@ function getLunesDeOffset(offset) {
   return monday;
 }
 
+// Convierte fecha DD/MM/YY a número para comparar
 function fechaToNum(str) {
   if (!str) return 0;
   const m = str.match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{2,4})$/);
@@ -145,8 +180,6 @@ function getFilasDeSemana(rows, offset) {
     .sort((a, b) => fechaToNum(a.fecha) - fechaToNum(b.fecha));
 }
 
-function getFilasSemanaActual(rows) { return getFilasDeSemana(rows, 0); }
-
 function getLabelSemana(rows) {
   if (!rows || rows.length === 0) return '—';
   const fechas = rows.map(r => parseFecha(r.fecha)).filter(Boolean).sort((a,b) => a-b);
@@ -158,26 +191,85 @@ function getLabelSemana(rows) {
   return `${fmtFecha(lunes)} al ${fmtFecha(domingo)}`;
 }
 
-/* ─── JSONP fetch ─── */
-function apiFetch(params) {
-  return new Promise((resolve, reject) => {
-    const cbName = '_cb_' + Math.random().toString(36).slice(2);
-    const qs = Object.entries(params).map(([k,v]) => `${k}=${encodeURIComponent(v)}`).join('&');
-    const script = document.createElement('script');
-    const timeout = setTimeout(() => { cleanup(); reject(new Error('Timeout')); }, 15000);
-    function cleanup() {
-      clearTimeout(timeout);
-      delete window[cbName];
-      if (script.parentNode) script.parentNode.removeChild(script);
+// ─────────────────────────────────────────
+//   FETCH DESDE FIRESTORE
+// ─────────────────────────────────────────
+
+/**
+ * Carga programación desde Firestore.
+ * Retorna array de rows con el mismo formato que usaba el Apps Script:
+ * [{ fecha: 'DD/MM/YY', dia, LECTOR, SONIDO_1, ... }]
+ */
+async function getProgramacion() {
+  const snap = await getDocs(query(asigCol(), orderBy('fecha')));
+  return snap.docs.map(d => {
+    const data = d.data();
+    const row = { _docId: d.id, fecha: '', dia: data.diaSemana || '' };
+    // Convertir fecha YYYY-MM-DD → DD/MM/YY para compatibilidad con funciones existentes
+    if (data.fecha) {
+      const parts = data.fecha.split('-');
+      if (parts.length === 3) {
+        row.fecha = `${parts[2]}/${parts[1]}/${parts[0].slice(-2)}`;
+      }
     }
-    window[cbName] = data => { cleanup(); resolve(data); };
-    script.src = `${SCRIPT_URL}?${qs}&callback=${cbName}`;
-    script.onerror = () => { cleanup(); reject(new Error('Error de red')); };
-    document.head.appendChild(script);
+    // Copiar roles
+    ROLES.forEach(r => { row[r] = (data.roles || {})[r] || ''; });
+    return row;
   });
 }
 
-/* ─── PIN ─── */
+/**
+ * Guarda (upsert) filas de programación en Firestore.
+ * data: [{ fecha: 'DD/MM/YY', dia, LECTOR, ... }]
+ */
+async function saveProgramacion(data) {
+  for (const row of data) {
+    // Convertir fecha DD/MM/YY → YYYY-MM-DD
+    const m = row.fecha.match(/^(\d{1,2})\/(\d{1,2})\/(\d{2,4})$/);
+    if (!m) continue;
+    const y = m[3].length === 2 ? '20' + m[3] : m[3];
+    const isoFecha = `${y}-${m[2].padStart(2,'0')}-${m[1].padStart(2,'0')}`;
+
+    const roles = {};
+    ROLES.forEach(r => { if (row[r]) roles[r] = row[r]; });
+
+    // Buscar si ya existe un doc para esa fecha
+    const existing = todasLasFilas.find(f => f.fecha === row.fecha);
+    if (existing && existing._docId) {
+      await updateDoc(doc(asigCol(), existing._docId), { diaSemana: row.dia, roles });
+    } else {
+      await addDoc(asigCol(), { fecha: isoFecha, diaSemana: row.dia, roles });
+    }
+  }
+  todasLasFilas = []; // invalidar cache
+}
+
+/**
+ * Carga lista de hermanos desde Firestore.
+ * Retorna hermanos en formato compatible con el original:
+ * { LECTOR: ['nombre1', ...], SONIDO_1: [...], ... }
+ */
+async function getHermanos() {
+  const snap = await getDocs(pubCol());
+  listaHermanos = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+
+  const result = {};
+  ROLES.forEach(r => { result[r] = []; });
+
+  listaHermanos.forEach(h => {
+    (h.roles || []).forEach(rol => {
+      const rolKey = ROL_LISTA_MAP[rol] || rol;
+      if (result[rolKey]) {
+        if (!result[rolKey].includes(h.nombre)) result[rolKey].push(h.nombre);
+      }
+    });
+  });
+  return result;
+}
+
+// ─────────────────────────────────────────
+//   PIN
+// ─────────────────────────────────────────
 function openPin() {
   pinBuffer = '';
   updatePinDots();
@@ -256,8 +348,7 @@ async function cargarVerSemana() {
   show('semana-loading'); hide('semana-content'); hide('semana-error');
   try {
     if (todasLasFilas.length === 0) {
-      const data = await apiFetch({ action: 'getProgramacion' });
-      todasLasFilas = data.rows || [];
+      todasLasFilas = await getProgramacion();
     }
     const filas = getFilasDeSemana(todasLasFilas, semanaOffsetVer);
     hide('semana-loading');
@@ -278,9 +369,9 @@ async function goToBuscarHermano() {
   hide('search-suggestions'); hide('buscar-result'); hide('buscar-empty'); hide('buscar-loading');
   const promises = [];
   if (Object.keys(hermanos).length === 0)
-    promises.push(apiFetch({ action: 'getHermanos' }).then(d => { hermanos = d; }).catch(()=>{}));
+    promises.push(getHermanos().then(d => { hermanos = d; }).catch(()=>{}));
   if (todasLasFilas.length === 0)
-    promises.push(apiFetch({ action: 'getProgramacion' }).then(d => { todasLasFilas = d.rows || []; }).catch(()=>{}));
+    promises.push(getProgramacion().then(d => { todasLasFilas = d; }).catch(()=>{}));
   await Promise.all(promises);
 }
 
@@ -296,9 +387,9 @@ async function goToAutomatico() {
   setText('auto-status', '');
   autoResult = [];
   if (Object.keys(hermanos).length === 0)
-    try { hermanos = await apiFetch({ action: 'getHermanos' }); } catch(e) {}
+    try { hermanos = await getHermanos(); } catch(e) {}
   if (todasLasFilas.length === 0)
-    try { const d = await apiFetch({ action: 'getProgramacion' }); todasLasFilas = d.rows || []; } catch(e) {}
+    try { todasLasFilas = await getProgramacion(); } catch(e) {}
 }
 
 async function goToGenerarImagen() {
@@ -325,8 +416,7 @@ async function cargarImagen() {
   show('imagen-loading'); hide('imagen-content');
   try {
     if (todasLasFilas.length === 0) {
-      const data = await apiFetch({ action: 'getProgramacion' });
-      todasLasFilas = data.rows || [];
+      todasLasFilas = await getProgramacion();
     }
     const filas = getFilasDeSemana(todasLasFilas, semanaOffsetImagen);
     hide('imagen-loading');
@@ -429,8 +519,7 @@ async function buscarHermano(nombre) {
   show('buscar-loading');
   try {
     if (todasLasFilas.length === 0) {
-      const data = await apiFetch({ action: 'getProgramacion' });
-      todasLasFilas = data.rows || [];
+      todasLasFilas = await getProgramacion();
     }
     hide('buscar-loading');
 
@@ -440,8 +529,7 @@ async function buscarHermano(nombre) {
       .filter(r => { const d = parseFecha(r.fecha); return d && d >= desde; })
       .sort((a,b) => parseFecha(a.fecha) - parseFecha(b.fecha));
 
-    const semanas = {};
-    const ordenSemanas = [];
+    const semanas = {}, ordenSemanas = [];
     filasProximas.forEach(row => {
       const d = parseFecha(row.fecha);
       if (!d) return;
@@ -516,11 +604,10 @@ async function cargarEditar() {
   setText('editar-status', '');
   try {
     if (Object.keys(hermanos).length === 0)
-      hermanos = await apiFetch({ action: 'getHermanos' });
-    if (todasLasFilas.length === 0) {
-      const d = await apiFetch({ action: 'getProgramacion' });
-      todasLasFilas = d.rows || [];
-    }
+      hermanos = await getHermanos();
+    if (todasLasFilas.length === 0)
+      todasLasFilas = await getProgramacion();
+
     const lunes = getLunesDeOffset(semanaOffsetEdit);
     const domingo = new Date(lunes); domingo.setDate(lunes.getDate() + 6);
     const rows = todasLasFilas.filter(r => {
@@ -588,8 +675,7 @@ async function guardarEdicion() {
     data.push(entry);
   });
   try {
-    await apiFetch({ action: 'saveProgramacion', data: JSON.stringify(data) });
-    todasLasFilas = [];
+    await saveProgramacion(data);
     if (status) { status.style.color = '#5DCAA5'; status.textContent = '✓ Guardado correctamente'; }
   } catch(err) {
     if (status) { status.style.color = '#F09595'; status.textContent = 'Error: ' + err.message; }
@@ -673,8 +759,7 @@ async function guardarAutomatico() {
   if (!autoResult.length) { if(status){status.style.color='#888';status.textContent='Nada que guardar.';} return; }
   if (status){status.style.color='#888';status.textContent='Guardando...';}
   try {
-    await apiFetch({ action: 'saveProgramacion', data: JSON.stringify(autoResult) });
-    todasLasFilas = [];
+    await saveProgramacion(autoResult);
     if (status){status.style.color='#5DCAA5';status.textContent=`✓ ${autoResult.length} reuniones guardadas`;}
   } catch(err) {
     if (status){status.style.color='#F09595';status.textContent='Error: '+err.message;}
@@ -723,7 +808,6 @@ function guardarImagen() {
 }
 
 /* ─── Gestionar hermanos ─── */
-let listaHermanos = [];
 let hermanoEditando = null;
 
 async function goToGestionar() {
@@ -731,8 +815,7 @@ async function goToGestionar() {
   show('gestionar-loading'); hide('gestionar-content');
   setText('gestionar-search', '');
   try {
-    const data = await apiFetch({ action: 'getLista' });
-    listaHermanos = data.hermanos || [];
+    await getHermanos(); // recarga listaHermanos
     hide('gestionar-loading');
     renderLista(listaHermanos);
     show('gestionar-content');
@@ -755,14 +838,14 @@ function renderLista(lista) {
     <div class="hermano-row">
       <div class="hermano-info">
         <div class="hermano-nombre">${h.nombre}</div>
-        <div class="hermano-roles">${h.roles.map(r => {
+        <div class="hermano-roles">${(h.roles || []).map(r => {
           const found = ROLES_OPCIONES.find(o => o.key === r);
           return `<span class="rol-chip">${found ? found.label : r}</span>`;
         }).join('')}</div>
       </div>
       <div class="hermano-actions">
-        <button class="btn-edit-hermano" onclick="abrirEditarHermano('${h.nombre.replace(/'/g,"\\'")}')">✏️</button>
-        <button class="btn-del-hermano" onclick="confirmarEliminar('${h.nombre.replace(/'/g,"\\'")}')">✕</button>
+        <button class="btn-edit-hermano" onclick="abrirEditarHermano('${h.id}')">✏️</button>
+        <button class="btn-del-hermano" onclick="confirmarEliminar('${h.id}', '${h.nombre.replace(/'/g,"\\'")}')">✕</button>
       </div>
     </div>`).join('');
 }
@@ -785,15 +868,15 @@ function abrirNuevoHermano() {
   show('modal-hermano');
 }
 
-function abrirEditarHermano(nombre) {
-  const h = listaHermanos.find(x => x.nombre === nombre);
+function abrirEditarHermano(docId) {
+  const h = listaHermanos.find(x => x.id === docId);
   if (!h) return;
-  hermanoEditando = h.nombre;
+  hermanoEditando = docId;
   document.getElementById('modal-hermano-titulo').textContent = 'Editar hermano';
   document.getElementById('modal-hermano-nombre').value = h.nombre;
   ROLES_OPCIONES.forEach(o => {
     const cb = document.getElementById('cb-' + o.key);
-    if (cb) cb.checked = h.roles.includes(o.key);
+    if (cb) cb.checked = (h.roles || []).includes(o.key);
   });
   setText('modal-hermano-status', '');
   show('modal-hermano');
@@ -808,17 +891,16 @@ async function guardarHermano() {
   const status = document.getElementById('modal-hermano-status');
   if (status) { status.style.color = '#888'; status.textContent = 'Guardando...'; }
   try {
-    const params = { action: 'saveHermano', nombre, roles: roles.join(', ') };
-    if (hermanoEditando) params.nombreOriginal = hermanoEditando;
-    await apiFetch(params);
     if (hermanoEditando) {
-      const idx = listaHermanos.findIndex(h => h.nombre === hermanoEditando);
-      if (idx >= 0) listaHermanos[idx] = { nombre, roles };
+      await updateDoc(doc(pubCol(), hermanoEditando), { nombre, roles });
+      const idx = listaHermanos.findIndex(h => h.id === hermanoEditando);
+      if (idx >= 0) listaHermanos[idx] = { ...listaHermanos[idx], nombre, roles };
     } else {
-      listaHermanos.push({ nombre, roles });
+      const ref = await addDoc(pubCol(), { nombre, roles, activo: true });
+      listaHermanos.push({ id: ref.id, nombre, roles, activo: true });
       listaHermanos.sort((a,b) => norm(a.nombre).localeCompare(norm(b.nombre)));
     }
-    hermanos = {};
+    hermanos = {};  // invalidar cache
     hide('modal-hermano');
     hermanoEditando = null;
     renderLista(listaHermanos);
@@ -828,8 +910,7 @@ async function guardarHermano() {
   }
 }
 
-async function confirmarEliminar(nombre) {
-  // ── REEMPLAZA confirm() nativo ──
+async function confirmarEliminar(docId, nombre) {
   const ok = await uiConfirm({
     title: `¿Eliminar a ${nombre}?`,
     msg: 'Se quitará de la lista de hermanos. Esta acción no se puede deshacer.',
@@ -839,8 +920,8 @@ async function confirmarEliminar(nombre) {
   });
   if (!ok) return;
   try {
-    await apiFetch({ action: 'deleteHermano', nombre });
-    listaHermanos = listaHermanos.filter(h => h.nombre !== nombre);
+    await deleteDoc(doc(pubCol(), docId));
+    listaHermanos = listaHermanos.filter(h => h.id !== docId);
     hermanos = {};
     renderLista(listaHermanos);
   } catch(err) {

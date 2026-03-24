@@ -1,7 +1,21 @@
-const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbyqfcGLySbIx6I2902w6mdZKSLAPk1-gZirJmY7A4Ua0Vy3bbYtxrwotyLsSMiCrNy1/exec';
+import { db } from '../firebase.js';
+import {
+  collection, doc, getDoc, getDocs, addDoc, updateDoc, deleteDoc,
+  query, where, orderBy, limit, Timestamp
+} from "https://www.gstatic.com/firebasejs/11.6.0/firebase-firestore.js";
 
-const ASIGNACIONES_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxy3WmKkJjSsEXM8qI0lCUdQn76o2v-55zZavlx_lJ_-SVZUip4vFsl0WXAPcPgMfDE/exec';
+// ── congreId viene de sessionStorage (seteado en index.html al elegir congregación) ──
+const CONGRE_ID = sessionStorage.getItem('congreId') || 'sur';
 
+function congreRef()  { return doc(db, 'congregaciones', CONGRE_ID); }
+function terrCol()    { return collection(db, 'congregaciones', CONGRE_ID, 'territorios'); }
+function histCol(id)  { return collection(db, 'congregaciones', CONGRE_ID, 'territorios', String(id), 'historial'); }
+function salidaCol()  { return collection(db, 'congregaciones', CONGRE_ID, 'salidas'); }
+function pubCol()     { return collection(db, 'congregaciones', CONGRE_ID, 'publicadores'); }
+
+// ─────────────────────────────────────────
+//  CONDUCTORES
+// ─────────────────────────────────────────
 const CONDUCTORES_BY_GROUP = { 1: [], 2: [], 3: [], 4: [], C: [] };
 
 let _conductoresListos = false;
@@ -14,10 +28,7 @@ function conductoresListos() {
 
 async function cargarConductores() {
   try {
-    const url = ASIGNACIONES_SCRIPT_URL + '?action=getLista';
-    const resp = await fetch(url);
-    const data = JSON.parse(await resp.text());
-    if (!data.hermanos) return;
+    const snap = await getDocs(pubCol());
     [1,2,3,4,'C'].forEach(g => { CONDUCTORES_BY_GROUP[g] = []; });
     const MAP = {
       'CONDUCTOR_GRUPO_1': 1,
@@ -26,11 +37,11 @@ async function cargarConductores() {
       'CONDUCTOR_GRUPO_4': 4,
       'CONDUCTOR_CONGREGACION': 'C',
     };
-    data.hermanos.forEach(h => {
-      h.roles.forEach(rol => {
+    snap.forEach(d => {
+      const h = d.data();
+      (h.roles || []).forEach(rol => {
         const grupo = MAP[rol.trim().toUpperCase()];
         if (grupo !== undefined) {
-          if (!CONDUCTORES_BY_GROUP[grupo]) CONDUCTORES_BY_GROUP[grupo] = [];
           if (!CONDUCTORES_BY_GROUP[grupo].includes(h.nombre)) {
             CONDUCTORES_BY_GROUP[grupo].push(h.nombre);
           }
@@ -46,6 +57,13 @@ async function cargarConductores() {
   }
 }
 
+// ─────────────────────────────────────────
+//  HELPERS FECHA
+// ─────────────────────────────────────────
+function fmtDateLocal(d) {
+  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+}
+
 const SPECIAL_TERR = { '11': true, '131': true };
 const DIAS_SEMANA = ['Domingo','Lunes','Martes','Miércoles','Jueves','Viernes','Sábado'];
 const DIAS_ES    = ['Domingo','Lunes','Martes','Miércoles','Jueves','Viernes','Sábado'];
@@ -56,15 +74,15 @@ let territoriosData = {};
 let allTerritoriosData = {};
 let configData    = {};
 let modalTerr     = null;
-let editingRow    = null;
+let editingRow    = null;   // doc ID en Firestore
 let historialRows = [];
 let salidas       = [];
 let salidaCounter = 0;
 let semanaOffset  = 0;
 
-/* ─────────────────────────────────────────
-   COLORES
-───────────────────────────────────────── */
+// ─────────────────────────────────────────
+//   COLORES
+// ─────────────────────────────────────────
 const GCOLORS = { 1:'#378ADD', 2:'#EF9F27', 3:'#97C459', 4:'#D85A30', C:'#7F77DD' };
 const GBGS    = { 1:'rgba(55,138,221,0.18)', 2:'rgba(239,159,39,0.18)', 3:'rgba(151,196,89,0.18)', 4:'rgba(216,90,48,0.18)', C:'rgba(127,119,221,0.18)' };
 const GROUP_COLORS = { 1:'#378ADD', 2:'#EF9F27', 3:'#97C459', 4:'#D85A30', 'C':'#7F77DD' };
@@ -80,9 +98,9 @@ const DIA_COLORS = {
   'Domingo':  '#F09595',
 };
 
-/* ─────────────────────────────────────────
-   UTILIDADES
-───────────────────────────────────────── */
+// ─────────────────────────────────────────
+//   UTILIDADES DOM
+// ─────────────────────────────────────────
 function show(id) {
   document.getElementById(id).style.display = '';
   if (!id.startsWith('view-')) return;
@@ -115,16 +133,6 @@ function setStep(n) {
     document.getElementById('s' + i).className = 'step' + (i < n ? ' done' : i === n ? ' active' : '');
 }
 
-function parseSheetDate(ds) {
-  if (!ds) return null;
-  const m = ds.match(/(\d{2})\/(\d{2})\/(\d{2,4})/);
-  if (m) {
-    const y = m[3].length === 2 ? '20' + m[3] : m[3];
-    return `${y}-${m[2]}-${m[1]}`;
-  }
-  return ds;
-}
-
 function formatShort(ds) {
   if (!ds) return '—';
   const d = new Date(ds + 'T00:00:00');
@@ -145,10 +153,11 @@ function getWeekDates(offset = 0) {
   const now = new Date(); const day = now.getDay();
   const monday = new Date(now);
   monday.setDate(now.getDate() - (day === 0 ? 6 : day - 1) + offset * 7);
+  monday.setHours(0,0,0,0);
   function d(o) {
     const x = new Date(monday);
     x.setDate(monday.getDate() + o);
-    return `${x.getFullYear()}-${String(x.getMonth()+1).padStart(2,'0')}-${String(x.getDate()).padStart(2,'0')}`;
+    return fmtDateLocal(x);
   }
   return { mon:d(0), tue:d(1), wed:d(2), thu:d(3), fri:d(4), sat:d(5), sun:d(6) };
 }
@@ -185,18 +194,63 @@ function getDiaFromFecha(fecha) {
   return '';
 }
 
+// ─────────────────────────────────────────
+//   FETCH DATOS DESDE FIRESTORE
+// ─────────────────────────────────────────
+
+/**
+ * Carga todos los territorios de un grupo y su último historial.
+ * Retorna objeto: { [terrId]: { lastFin, lastIni, enProgreso, tipo } }
+ */
 async function fetchGrupo(grupo) {
-  const url = SCRIPT_URL + '?action=getLastDates&grupo=' + encodeURIComponent(grupo);
-  const response = await fetch(url);
-  const text = await response.text();
-  const data = JSON.parse(text);
-  if (data.error) throw new Error(data.error);
-  return data;
+  const grupoStr = String(grupo);
+  const q = query(terrCol(), where('grupoId', '==', grupoStr));
+  const snap = await getDocs(q);
+
+  const result = {};
+  // Para cada territorio, buscar su última entrada de historial
+  await Promise.all(snap.docs.map(async terrDoc => {
+    const terr = terrDoc.data();
+    const id   = String(terr.id);
+
+    // Ordenar historial por fechaInicio desc, tomar el último
+    const histSnap = await getDocs(
+      query(histCol(id), orderBy('fechaInicio', 'desc'), limit(1))
+    );
+
+    let lastFin = null, lastIni = null, enProgreso = false;
+    if (!histSnap.empty) {
+      const h = histSnap.docs[0].data();
+      lastIni    = h.fechaInicio || null;
+      lastFin    = h.fechaFin   || null;
+      enProgreso = !h.fechaFin;
+    }
+
+    result[id] = { lastFin, lastIni, enProgreso, tipo: terr.tipo || 'normal' };
+  }));
+
+  return result;
 }
 
-/* ─────────────────────────────────────────
-   COVER / NAVEGACIÓN
-───────────────────────────────────────── */
+/**
+ * Carga config de territorios especiales del grupo (no_predica, peligroso).
+ * Retorna objeto: { [terrId]: 'no_predica' | 'peligroso' | 'normal' }
+ */
+async function fetchConfig(grupo) {
+  const grupoStr = String(grupo);
+  const q = query(terrCol(), where('grupoId', '==', grupoStr));
+  const snap = await getDocs(q);
+  const cfg = {};
+  snap.forEach(d => {
+    const t = d.data();
+    if (t.tipo && t.tipo !== 'normal') cfg[String(t.id)] = t.tipo;
+  });
+  return cfg;
+}
+
+// ─────────────────────────────────────────
+//   COVER / NAVEGACIÓN
+// ─────────────────────────────────────────
 (function() {
   const grupoGuardado = sessionStorage.getItem('selectedGrupo');
   if (grupoGuardado) {
@@ -233,10 +287,8 @@ function selectGrupo(el, n) {
     b.classList.remove('selected');
     b.style.background = '#2a2a2a';
   });
-  const color = GCOLORS[n] || '#888';
-  const bg = GBGS[n] || 'rgba(100,100,100,0.18)';
   el.classList.add('selected');
-  el.style.background = bg;
+  el.style.background = GBGS[n] || 'rgba(100,100,100,0.18)';
   selectedGrupo = n;
   document.getElementById('btn-start').classList.add('enabled');
 }
@@ -257,8 +309,7 @@ function goToModo() {
   hide('view-registrar'); hide('view-info'); hide('view-historial');
   const label = document.getElementById('modo-grupo-label');
   label.textContent = selectedGrupo === 'C' ? 'Congregación' : selectedGrupo;
-  const color = GROUP_COLORS[selectedGrupo] || '#97C459';
-  label.style.color = color;
+  label.style.color = GROUP_COLORS[selectedGrupo] || '#97C459';
 
   const cardColors = [
     { border: '#378ADD', bg: 'rgba(55,138,221,0.15)'  },
@@ -309,9 +360,9 @@ async function cerrarSesion() {
   goToCover();
 }
 
-/* ─────────────────────────────────────────
-   PIN
-───────────────────────────────────────── */
+// ─────────────────────────────────────────
+//   PIN
+// ─────────────────────────────────────────
 const PINS = { 1:'1111', 2:'2222', 3:'3333', 4:'4444', C:'5555' };
 let pinBuffer = '';
 let pinGrupo  = null;
@@ -353,6 +404,8 @@ function updatePinDots() {
 }
 
 function checkPin() {
+  // En versión multi-congregación, los PINs vienen de Firestore (grupos/{id})
+  // Por ahora usamos los hardcodeados como fallback; reemplazar cuando se migre index.html
   const correct = PINS[pinGrupo];
   if (pinBuffer === correct) {
     document.getElementById('pin-modal').style.display = 'none';
@@ -371,9 +424,9 @@ function pinCancel() {
   pinBuffer = '';
 }
 
-/* ─────────────────────────────────────────
-   PLANIFICADOR
-───────────────────────────────────────── */
+// ─────────────────────────────────────────
+//   PLANIFICADOR
+// ─────────────────────────────────────────
 function getPlantilla(grupo) {
   const week = getWeekDates(semanaOffset);
   if (grupo === 'C') {
@@ -412,20 +465,17 @@ async function goToStep1() {
     const fetchPromises = [fetchGrupo(selectedGrupo), conductoresListos()];
     const extraGrupos = selectedGrupo === 'C' ? [1, 2, 3, 4] : [];
     const extraPromises = extraGrupos.map(g => fetchGrupo(g));
-    const [raw] = await Promise.all([...fetchPromises, ...extraPromises.map((p, i) =>
-      p.then(data => { allTerritoriosData[extraGrupos[i]] = {}; Object.keys(data).forEach(terr => { allTerritoriosData[extraGrupos[i]][terr] = { lastFin: parseSheetDate(data[terr].lastFin), lastIni: parseSheetDate(data[terr].lastIni), enProgreso: data[terr].enProgreso }; }); })
-    )]);
-    Object.keys(raw).forEach(terr => {
-      const d = raw[terr];
-      territoriosData[terr] = {
-        lastFin: parseSheetDate(d.lastFin),
-        lastIni: parseSheetDate(d.lastIni),
-        enProgreso: d.enProgreso
-      };
-    });
-    const cfgUrl = SCRIPT_URL + '?action=getConfig&grupo=' + encodeURIComponent(selectedGrupo);
-    const cfgResp = await fetch(cfgUrl);
-    configData = JSON.parse(await cfgResp.text());
+
+    const [raw] = await Promise.all([
+      ...fetchPromises,
+      ...extraPromises.map((p, i) =>
+        p.then(data => { allTerritoriosData[extraGrupos[i]] = data; })
+      )
+    ]);
+
+    territoriosData = raw;
+    configData = await fetchConfig(selectedGrupo);
+
     if (window.uiLoading) uiLoading.hide(); else hide('terr-loading');
     renderSalidas();
   } catch(err) {
@@ -475,7 +525,6 @@ function renderSalidas() {
         <div><label>Hora tarde</label><input type="time" id="tel-fija-tarde" value="17:00"></div>
       </div>`;
     c.appendChild(telBlock);
-    // upgrade inmediato para el bloque telefónica
     if (window.upgradeInputs) upgradeInputs(telBlock);
   }
 
@@ -504,13 +553,6 @@ function getConductorOptions(grupo, sel = '') {
     conductores.map(c => `<option value="${c}" ${c===sel?'selected':''}>${c}</option>`).join('');
 }
 
-function condSelect(id, grupo) {
-  const conductores = CONDUCTORES_BY_GROUP[grupo] || [];
-  const opts = '<option value="">— Elegir conductor —</option>' +
-    conductores.map(c => `<option value="${c}">${c}</option>`).join('');
-  return `<select id="${id}">${opts}</select>`;
-}
-
 function updateDiaLabel(id) {
   const fecha = document.getElementById('sal-fecha-' + id)?.value;
   const label = document.getElementById('sal-dia-label-' + id);
@@ -522,9 +564,7 @@ function updateDiaLabel(id) {
 
 function reordenarSalidas() {
   const container = document.getElementById('salidas-container');
-  // La primera card puede ser el bloque fijo de telefónica de Congregación (sin id de salida)
   const fixedBlock = container.querySelector('.tipo-tel:not([id^="salida-card-"])');
-
   const cards = [...container.querySelectorAll('[id^="salida-card-"]')];
   cards.sort((a, b) => {
     const idA = parseInt(a.id.replace('salida-card-', ''));
@@ -536,8 +576,6 @@ function reordenarSalidas() {
     const horaB  = document.getElementById('sal-hora-'  + idB)?.value || '';
     return horaA.localeCompare(horaB);
   });
-
-  // Reinsertar: el bloque fijo siempre primero (solo existe en Congregación)
   if (fixedBlock) container.appendChild(fixedBlock);
   cards.forEach(card => container.appendChild(card));
 }
@@ -621,15 +659,10 @@ function renderSalidaCard(s) {
       <input type="text" id="sal-enc-${s.id}" value="${s.encuentro}" placeholder="Ej: Flia. García / esq. X y Y">
     </div>`;
   c.appendChild(div);
-  // Upgrade de date/time inputs en el card recién creado
   if (window.upgradeInputs) upgradeInputs(div);
-  // Actualizar label del día cuando cambie la fecha
   const fechaInput = div.querySelector(`#sal-fecha-${s.id}`);
   if (fechaInput) {
-    fechaInput.addEventListener('change', () => {
-      updateDiaLabel(s.id);
-      reordenarSalidas();
-    });
+    fechaInput.addEventListener('change', () => { updateDiaLabel(s.id); reordenarSalidas(); });
   }
   const horaInput = div.querySelector(`#sal-hora-${s.id}`);
   if (horaInput) {
@@ -655,41 +688,38 @@ function addExtraTerritory(salidaId) {
   container.appendChild(wrap);
 }
 
-/* ─────────────────────────────────────────
-   CONDUCTOR PICKER
-───────────────────────────────────────── */
+// ─────────────────────────────────────────
+//   CONDUCTOR PICKER
+// ─────────────────────────────────────────
 function openConductorPicker(selectId, grupo, btn) {
   const conductores = CONDUCTORES_BY_GROUP[grupo] || [];
   if (!window.uiConductorPicker || conductores.length === 0) return;
   const sel = document.getElementById(selectId);
-  const valActual = sel ? sel.value : '';
-  const color = GCOLORS[grupo] || '#97C459';
   uiConductorPicker({
     conductores,
-    value: valActual,
+    value: sel ? sel.value : '',
     label: 'Elegí el conductor',
-    color,
+    color: GCOLORS[grupo] || '#97C459',
   }).then(resultado => {
     if (resultado === null) return;
     if (sel) sel.value = resultado;
   });
 }
 
-/* ─────────────────────────────────────────
-   TERRITORIO PICKER
-───────────────────────────────────────── */
+// ─────────────────────────────────────────
+//   TERRITORIO PICKER
+// ─────────────────────────────────────────
 function openTerritorioPicker(salidaId, hiddenId, btnId) {
   if (!window.uiTerritorioPicker) return;
   const hidden = document.getElementById(hiddenId);
   const btn    = document.getElementById(btnId);
-  const color  = GCOLORS[selectedGrupo] || '#97C459';
   uiTerritorioPicker({
     territoriosData,
     allData: allTerritoriosData,
     grupo: selectedGrupo,
     configData,
     label: 'Elegir territorio',
-    color,
+    color: GCOLORS[selectedGrupo] || '#97C459',
   }).then(resultado => {
     if (resultado === null) return;
     if (hidden) hidden.value = resultado;
@@ -705,19 +735,16 @@ function openTerritorioPicker(salidaId, hiddenId, btnId) {
   });
 }
 
-/* ─────────────────────────────────────────
-   PICKER DE MAPA
-───────────────────────────────────────── */
+// ─────────────────────────────────────────
+//   PICKER DE MAPA
+// ─────────────────────────────────────────
 function openMapaPicker(salidaId) {
-  const g = selectedGrupo;
   const popup  = document.getElementById('mapa-popup');
   const iframe = document.getElementById('mapa-iframe');
   const title  = document.getElementById('mapa-popup-title');
-
-  const grupoLabel = g === 'C' ? 'Congregación' : 'Grupo ' + g;
+  const grupoLabel = selectedGrupo === 'C' ? 'Congregación' : 'Grupo ' + selectedGrupo;
   title.textContent = `Elegir territorio — ${grupoLabel}`;
-
-  iframe.src = `mapa.html?grupo=${g}&modo=picker&salidaid=${salidaId}`;
+  iframe.src = `mapa.html?grupo=${selectedGrupo}&modo=picker&salidaid=${salidaId}`;
   popup.style.display = 'flex';
   document.body.style.overflow = 'hidden';
 }
@@ -731,7 +758,6 @@ window.addEventListener('message', function(event) {
     closeMapaPopup();
     if (!territorios || territorios.length === 0) return;
 
-    // Territorio principal
     const mainHidden = document.getElementById('sal-terr-' + salidaId);
     const mainBtn    = document.getElementById('sal-terr-btn-' + salidaId);
     if (mainHidden && territorios[0]) {
@@ -742,7 +768,6 @@ window.addEventListener('message', function(event) {
       }
     }
 
-    // Territorios extra
     const extraContainer = document.getElementById('extra-terrs-' + salidaId);
     if (extraContainer && territorios.length > 1) {
       territorios.slice(1).forEach(num => {
@@ -768,9 +793,9 @@ window.addEventListener('message', function(event) {
   }
 });
 
-/* ─────────────────────────────────────────
-   VISTA PREVIA
-───────────────────────────────────────── */
+// ─────────────────────────────────────────
+//   VISTA PREVIA
+// ─────────────────────────────────────────
 function getDiaBadge(fecha) {
   if (!fecha) return '';
   const d = new Date(fecha + 'T00:00:00');
@@ -789,8 +814,7 @@ function getDiaBadge(fecha) {
 
 function generatePreview() {
   const grupoLabel = selectedGrupo === 'C' ? 'Congregación' : 'Grupo ' + selectedGrupo;
-  const colores    = { '1':'#378ADD', '2':'#EF9F27', '3':'#97C459', '4':'#D85A30', 'C':'#7F77DD' };
-  const color = colores[selectedGrupo] || '#eee';
+  const color = GROUP_COLORS[selectedGrupo] || '#eee';
   document.getElementById('preview-grupo-title').textContent = `${grupoLabel} — Salidas de la semana`;
   document.getElementById('preview-grupo-color').innerHTML  = `<span style="color:${color}">${grupoLabel}</span>`;
   document.getElementById('preview-congre-color').innerHTML = `<span style="color:#7F77DD">Congregación Sur</span>`;
@@ -821,26 +845,19 @@ function generatePreview() {
       const extraSelects = extraContainer ? extraContainer.querySelectorAll('input[type="hidden"]') : [];
       const extraTerrs = [...extraSelects].map(inp => inp.value).filter(v => v && v !== '—');
       const allTerrs = [mainTerr, ...extraTerrs].filter(v => v && v !== '—');
-      const terrLabel = allTerrs.join(', ') || '—';
-      rows.push({ enc, terr: terrLabel, tel:false, badge:getDiaBadge(fecha), fecha:formatShortFull(fecha).replace(/\//g,'-'), cond, hora:hora.replace(':','.') });
+      rows.push({ enc, terr: allTerrs.join(', ') || '—', tel:false, badge:getDiaBadge(fecha), fecha:formatShortFull(fecha).replace(/\//g,'-'), cond, hora:hora.replace(':','.') });
     }
-
-    
   });
 
-rows.sort((a, b) => {
-  // Las telefónicas fijas de Congregación no tienen fecha real, van primero
-  if (a.tel && !a.fecha) return -1;
-  if (b.tel && !b.fecha) return 1;
-  const fechaA = a.fecha || '';
-  const fechaB = b.fecha || '';
-  if (fechaA !== fechaB) return fechaA.localeCompare(fechaB);
-  // Misma fecha: ordenar por hora (formato H.MM → reemplazar punto por :)
-  const horaA = (a.hora || '').replace('.', ':');
-  const horaB = (b.hora || '').replace('.', ':');
-  return horaA.localeCompare(horaB);
-});
-  
+  rows.sort((a, b) => {
+    if (a.tel && !a.fecha) return -1;
+    if (b.tel && !b.fecha) return 1;
+    const fechaA = a.fecha || '';
+    const fechaB = b.fecha || '';
+    if (fechaA !== fechaB) return fechaA.localeCompare(fechaB);
+    return (a.hora||'').replace('.', ':').localeCompare((b.hora||'').replace('.', ':'));
+  });
+
   document.getElementById('preview-body').innerHTML = rows.map(r => `
     <tr${r.tel ? ' class="tel-row"' : ''}>
       <td>${r.enc}</td>
@@ -873,71 +890,16 @@ function guardarImagen() {
   });
 }
 
-const KAPSO_API_KEY    = '1c9996633b2aa945bc421fb5054809848c48e72ca067c6a20d8d8670f00a93e7';
-const KAPSO_PHONE_ID   = '1077924762071738';
-const IMGBB_API_KEY    = 'bd4a80a2669ac560375bd8137350ef7e';
-
-// Números de WhatsApp por grupo — completar con los reales
-const WHATSAPP_GRUPOS = {
-  1: '',
-  2: '',
-  3: '',
-  4: '',
-  C: ''
-};
-
-async function enviarWhatsapp() {
-  const btn = document.getElementById('btn-enviar-wa');
-  if (btn) { btn.disabled = true; btn.textContent = 'Enviando...'; }
-
-  try {
-    // 1. Generar imagen
-    const el = document.querySelector('.card-preview');
-    const originalWidth = el.style.width;
-    el.style.width = '900px';
-    const canvas = await html2canvas(el, { backgroundColor: '#1e1e1e', scale: 1, width: 900 });
-    el.style.width = originalWidth;
-    const base64 = canvas.toDataURL('image/jpeg', 0.92).split(',')[1];
-
-    // 2. Subir a ImgBB
-    const formData = new FormData();
-    formData.append('key', IMGBB_API_KEY);
-    formData.append('image', base64);
-    const imgResp = await fetch('https://api.imgbb.com/1/upload', { method: 'POST', body: formData });
-    const imgData = await imgResp.json();
-    if (!imgData.success) throw new Error('Error subiendo imagen: ' + JSON.stringify(imgData));
-    const imageUrl = imgData.data.url;
-
-    // 3. Llamar al Apps Script (que llama a Kapso sin CORS)
-    const grupoLabel = selectedGrupo === 'C' ? 'Congregación' : 'Grupo ' + selectedGrupo;
-    const caption = `Salidas ${grupoLabel} — ${document.getElementById('week-info')?.textContent || ''}`;
-    const scriptUrl = SCRIPT_URL
-      + '?action=sendWhatsapp'
-      + '&grupo=' + encodeURIComponent(selectedGrupo)
-      + '&imageUrl=' + encodeURIComponent(imageUrl)
-      + '&caption=' + encodeURIComponent(caption);
-
-    const resp = await fetch(scriptUrl);
-    const data = JSON.parse(await resp.text());
-    if (data.error) throw new Error(data.error);
-
-    if (window.uiToast) uiToast('Imagen enviada por WhatsApp ✓', 'success');
-
-  } catch(err) {
-    console.error(err);
-    if (window.uiToast) uiToast('Error: ' + err.message, 'error');
-  } finally {
-    if (btn) { btn.disabled = false; btn.textContent = '📲 Enviar al grupo'; }
-  }
-}
-
+// ─────────────────────────────────────────
+//   REGISTRAR EN PROGRESO
+// ─────────────────────────────────────────
 async function registrarEnProgreso() {
   const btn    = document.getElementById('btn-reg-prog');
   const status = document.getElementById('reg-prog-status');
   const territoriosARegistrar = [];
   salidas.forEach(s => {
     if (s.tipo !== 'campo') return;
-    const cond = document.getElementById('sal-cond-' + s.id)?.value;
+    const cond  = document.getElementById('sal-cond-'  + s.id)?.value;
     const fecha = document.getElementById('sal-fecha-' + s.id)?.value;
     const mainTerrR = document.getElementById('sal-terr-' + s.id)?.value;
     const extraContR = document.getElementById('extra-terrs-' + s.id);
@@ -952,25 +914,32 @@ async function registrarEnProgreso() {
   btn.disabled = true;
   if (window.uiLoading) uiLoading.show(`Registrando ${territoriosARegistrar.length} territorio(s)...`);
   else { status.style.color = '#888'; status.textContent = `Registrando ${territoriosARegistrar.length} territorio(s)...`; }
+
   try {
     for (const t of territoriosARegistrar) {
-      const url = SCRIPT_URL + '?action=saveRecord&grupo=' + encodeURIComponent(selectedGrupo) +
-        '&territorio=' + encodeURIComponent(t.terr) +
-        '&conductor='  + encodeURIComponent(t.cond) +
-        '&fechaInicio='+ encodeURIComponent(t.fecha) + '&fechaFin=';
-      await fetch(url);
+      await addDoc(histCol(t.terr), {
+        conductor:   t.cond,
+        fechaInicio: t.fecha,
+        fechaFin:    null,
+      });
     }
-    territoriosData = {};
+
+    // Guardar salida en historial
     const salidasParaHistorial = salidas.map(s => ({
       enc:   document.getElementById('sal-enc-'   + s.id)?.value || '—',
       terr:  s.tipo === 'tel' ? 'TELEFÓNICA' : (document.getElementById('sal-terr-' + s.id)?.value || '—'),
       fecha: document.getElementById('sal-fecha-' + s.id)?.value || '',
       cond:  document.getElementById('sal-cond-'  + s.id)?.value || '—',
-      hora:  (document.getElementById('sal-hora-' + s.id)?.value || '').replace(':','.')
+      hora:  (document.getElementById('sal-hora-' + s.id)?.value || '').replace(':','.'),
+      tipo:  s.tipo,
     }));
-    const histUrl = SCRIPT_URL + '?action=saveHistorial&grupo=' + encodeURIComponent(selectedGrupo) +
-      '&salidas=' + encodeURIComponent(JSON.stringify(salidasParaHistorial));
-    await fetch(histUrl);
+    await addDoc(salidaCol(), {
+      grupoId:   String(selectedGrupo),
+      fechaReg:  fmtDateLocal(new Date()),
+      salidas:   salidasParaHistorial,
+    });
+
+    territoriosData = {};
     if (window.uiLoading) uiLoading.hide();
     status.style.color = '#5DCAA5';
     status.textContent = `✓ ${territoriosARegistrar.length} territorio(s) registrado(s) como en progreso`;
@@ -984,26 +953,16 @@ async function registrarEnProgreso() {
   }
 }
 
-/* ─────────────────────────────────────────
-   REGISTRAR TERRITORIOS
-───────────────────────────────────────── */
+// ─────────────────────────────────────────
+//   REGISTRAR TERRITORIOS (completar)
+// ─────────────────────────────────────────
 async function goToRegistrar() {
   hide('view-modo');
   show('view-registrar');
   document.getElementById('reg-grupo-label').textContent = selectedGrupo;
   show('reg-loading'); hide('reg-container'); hide('reg-error'); hide('reg-footer');
   try {
-    territoriosData = {};
-    const raw = await fetchGrupo(selectedGrupo);
-    territoriosData = {};
-    Object.keys(raw).forEach(terr => {
-      const d = raw[terr];
-      territoriosData[terr] = {
-        lastFin: parseSheetDate(d.lastFin),
-        lastIni: parseSheetDate(d.lastIni),
-        enProgreso: d.enProgreso
-      };
-    });
+    territoriosData = await fetchGrupo(selectedGrupo);
     hide('reg-loading');
     renderRegistrar();
   } catch(err) {
@@ -1059,7 +1018,6 @@ function renderRegistrar() {
     c.appendChild(div);
   });
   show('reg-container'); show('reg-footer');
-  // Upgrade date inputs en las cards de registro
   if (window.upgradeInputs) upgradeInputs(c);
 }
 
@@ -1086,16 +1044,18 @@ async function guardarRegistros() {
   const btn    = document.getElementById('btn-guardar');
   const status = document.getElementById('save-status');
   btn.disabled = true;
+
   const cards = document.querySelectorAll('[id^="reg-card-"]');
   const saves = [];
   cards.forEach(card => {
     const n = card.dataset.terr;
     const estado = card.dataset.estado;
     const conductor = document.getElementById('reg-cond-' + n)?.value || '';
-    const ini = fmtDate(document.getElementById('reg-ini-' + n)?.value || '');
-    const fin = estado === 'completado' ? fmtDate(document.getElementById('reg-fin-' + n)?.value || '') : '';
+    const ini = document.getElementById('reg-ini-' + n)?.value || '';
+    const fin = estado === 'completado' ? (document.getElementById('reg-fin-' + n)?.value || '') : null;
     saves.push({ territorio: n, conductor, fechaInicio: ini, fechaFin: fin, estado });
   });
+
   const sinConductor = saves.some(s => s.estado === 'completado' && !s.conductor);
   if (sinConductor) {
     status.style.color = '#F09595';
@@ -1103,16 +1063,31 @@ async function guardarRegistros() {
     btn.disabled = false;
     return;
   }
+
   if (window.uiLoading) uiLoading.show('Guardando registros...');
   else { status.style.color = '#888'; status.textContent = 'Guardando...'; }
+
   try {
     for (const s of saves) {
-      const url = SCRIPT_URL + '?action=saveRecord&grupo=' + encodeURIComponent(selectedGrupo) +
-        '&territorio='  + encodeURIComponent(s.territorio) +
-        '&conductor='   + encodeURIComponent(s.conductor) +
-        '&fechaInicio=' + encodeURIComponent(s.fechaInicio) +
-        '&fechaFin='    + encodeURIComponent(s.fechaFin);
-      await fetch(url);
+      // Buscar la entrada en progreso más reciente para este territorio
+      const histSnap = await getDocs(
+        query(histCol(s.territorio), orderBy('fechaInicio', 'desc'), limit(1))
+      );
+      if (!histSnap.empty) {
+        const histDocRef = histSnap.docs[0].ref;
+        await updateDoc(histDocRef, {
+          conductor:   s.conductor,
+          fechaInicio: s.fechaInicio,
+          fechaFin:    s.fechaFin,
+        });
+      } else {
+        // No existía — crear nueva entrada
+        await addDoc(histCol(s.territorio), {
+          conductor:   s.conductor,
+          fechaInicio: s.fechaInicio,
+          fechaFin:    s.fechaFin,
+        });
+      }
     }
     territoriosData = {};
     if (window.uiLoading) uiLoading.hide();
@@ -1127,9 +1102,9 @@ async function guardarRegistros() {
   }
 }
 
-/* ─────────────────────────────────────────
-   INFO GRUPO / MODAL
-───────────────────────────────────────── */
+// ─────────────────────────────────────────
+//   INFO GRUPO / MODAL
+// ─────────────────────────────────────────
 async function goToInfoGrupo() {
   hide('view-modo'); show('view-info');
   const infoTitulo = document.getElementById('info-titulo');
@@ -1137,26 +1112,13 @@ async function goToInfoGrupo() {
   infoTitulo.style.color = GCOLORS[selectedGrupo] || '#97C459';
   show('info-loading'); hide('info-content'); hide('info-error');
   try {
-    territoriosData = {};
-    const raw = await fetchGrupo(selectedGrupo);
-    territoriosData = {};
-    Object.keys(raw).forEach(terr => {
-      const d = raw[terr];
-      territoriosData[terr] = {
-        lastFin: parseSheetDate(d.lastFin),
-        lastIni: parseSheetDate(d.lastIni),
-        enProgreso: d.enProgreso
-      };
-    });
-    const cfgUrl = SCRIPT_URL + '?action=getConfig&grupo=' + encodeURIComponent(selectedGrupo);
-    const cfgResp = await fetch(cfgUrl);
-    configData = JSON.parse(await cfgResp.text());
+    territoriosData = await fetchGrupo(selectedGrupo);
+    configData      = await fetchConfig(selectedGrupo);
     hide('info-loading'); show('info-content');
     renderInfoGrid();
   } catch(err) {
     hide('info-loading');
-    const errEl = document.getElementById('info-error');
-    errEl.innerHTML = `<div class="error-wrap">Error: ${err.message}.</div>`;
+    document.getElementById('info-error').innerHTML = `<div class="error-wrap">Error: ${err.message}.</div>`;
     show('info-error');
   }
 }
@@ -1202,15 +1164,15 @@ async function openModal(n) {
   document.getElementById('modal-edit-form').style.display = 'none';
   document.getElementById('estado-modal').style.display = 'flex';
   editingRow = null;
+
   try {
-    const url = SCRIPT_URL + '?action=getHistory&grupo=' + encodeURIComponent(selectedGrupo) + '&territorio=' + encodeURIComponent(n);
-    const resp = await fetch(url);
-    const data = JSON.parse(await resp.text());
+    const histSnap = await getDocs(
+      query(histCol(n), orderBy('fechaInicio', 'desc'))
+    );
     document.getElementById('modal-hist-loading').style.display = 'none';
-    if (data.rows) {
-      renderHistorial(data.rows);
-      document.getElementById('modal-hist-content').style.display = '';
-    }
+    const rows = histSnap.docs.map(d => ({ id: d.id, ...d.data() }));
+    renderHistorial(rows);
+    document.getElementById('modal-hist-content').style.display = '';
   } catch(err) {
     document.getElementById('modal-hist-loading').textContent = 'Error al cargar historial';
   }
@@ -1224,12 +1186,12 @@ function renderHistorial(rows) {
   } else {
     tbody.innerHTML = rows.map((r, i) => `
       <tr>
-        <td>${r.conductor}</td>
-        <td>${r.ini || '—'}</td>
-        <td>${r.fin ? r.fin : '<span class="hist-en-prog">en prog.</span>'}</td>
+        <td>${r.conductor || '—'}</td>
+        <td>${r.fechaInicio ? formatShortFull(r.fechaInicio) : '—'}</td>
+        <td>${r.fechaFin ? formatShortFull(r.fechaFin) : '<span class="hist-en-prog">en prog.</span>'}</td>
         <td style="white-space:nowrap;text-align:right;">
-          <button class="hist-edit-btn" onclick="startEdit(${i}, '${r.rowIndex}', '${r.conductor}', '${r.ini||''}', '${r.fin||''}')">Editar</button>
-          <button class="hist-del-btn" onclick="deleteEntry('${r.rowIndex}')">✕</button>
+          <button class="hist-edit-btn" onclick="startEdit('${r.id}', '${r.conductor||''}', '${r.fechaInicio||''}', '${r.fechaFin||''}')">Editar</button>
+          <button class="hist-del-btn" onclick="deleteEntry('${r.id}')">✕</button>
         </td>
       </tr>`).join('');
   }
@@ -1245,8 +1207,7 @@ function renderHistorial(rows) {
   }
 }
 
-async function deleteEntry(rowIndex) {
-  // ── REEMPLAZA confirm() nativo ──
+async function deleteEntry(docId) {
   const ok = await uiConfirm({
     title: '¿Eliminar entrada?',
     msg: 'Esta acción no se puede deshacer.',
@@ -1255,9 +1216,7 @@ async function deleteEntry(rowIndex) {
     type: 'danger'
   });
   if (!ok) return;
-  const url = SCRIPT_URL + '?action=deleteRecord&grupo=' + encodeURIComponent(selectedGrupo) +
-    '&territorio=' + encodeURIComponent(modalTerr) + '&rowIndex=' + encodeURIComponent(rowIndex);
-  await fetch(url);
+  await deleteDoc(doc(db, 'congregaciones', CONGRE_ID, 'territorios', String(modalTerr), 'historial', docId));
   await openModal(modalTerr);
 }
 
@@ -1265,18 +1224,16 @@ function startAddEntry() {
   editingRow = null;
   document.getElementById('modal-edit-form').style.display = '';
   const conductores = CONDUCTORES_BY_GROUP[selectedGrupo] || [];
-  const input = document.getElementById('edit-cond');
   const dl = document.getElementById('conductores-list');
-  dl.innerHTML = conductores.map(c => `<option value="${c}">`).join('');
-  input.value = '';
+  if (dl) dl.innerHTML = conductores.map(c => `<option value="${c}">`).join('');
+  document.getElementById('edit-cond').value = '';
   document.getElementById('edit-ini').value = '';
   document.getElementById('edit-fin').value = '';
-  // Upgrade date inputs del formulario de edición
   if (window.upgradeInputs) upgradeInputs(document.getElementById('modal-edit-form'));
 }
 
-function startEdit(idx, rowIndex, conductor, ini, fin) {
-  editingRow = rowIndex;
+function startEdit(docId, conductor, ini, fin) {
+  editingRow = docId;
   document.getElementById('modal-edit-form').style.display = '';
   const conductores = CONDUCTORES_BY_GROUP[selectedGrupo] || [];
   const sel = document.getElementById('edit-cond');
@@ -1284,15 +1241,8 @@ function startEdit(idx, rowIndex, conductor, ini, fin) {
     conductores.map(c => `<option value="${c}" ${c===conductor?'selected':''}>${c}</option>`).join('');
   if (conductor && !conductores.includes(conductor))
     sel.innerHTML += `<option value="${conductor}" selected>${conductor}</option>`;
-  function toInputDate(ds) {
-    if (!ds) return '';
-    const m = ds.match(/^(\d{2})\/(\d{2})\/(\d{2,4})$/);
-    if (m) { const y = m[3].length===2 ? '20'+m[3] : m[3]; return `${y}-${m[2]}-${m[1]}`; }
-    return '';
-  }
-  document.getElementById('edit-ini').value = toInputDate(ini);
-  document.getElementById('edit-fin').value = toInputDate(fin);
-  // Upgrade date inputs del formulario de edición
+  document.getElementById('edit-ini').value = ini;
+  document.getElementById('edit-fin').value = fin;
   if (window.upgradeInputs) upgradeInputs(document.getElementById('modal-edit-form'));
 }
 
@@ -1304,23 +1254,19 @@ function cancelEdit() {
 async function saveEdit() {
   const conductor = document.getElementById('edit-cond').value.trim();
   const ini = document.getElementById('edit-ini').value;
-  const fin = document.getElementById('edit-fin').value;
+  const fin = document.getElementById('edit-fin').value || null;
   if (!conductor) {
-    // ── REEMPLAZA alert() nativo ──
     await uiAlert('Elegí un conductor antes de guardar.', 'Falta el conductor');
     return;
   }
+  const data = { conductor, fechaInicio: ini, fechaFin: fin };
   if (editingRow) {
-    const url = SCRIPT_URL + '?action=updateRecord&grupo=' + encodeURIComponent(selectedGrupo) +
-      '&territorio=' + encodeURIComponent(modalTerr) + '&rowIndex=' + encodeURIComponent(editingRow) +
-      '&conductor='  + encodeURIComponent(conductor)  + '&fechaInicio=' + encodeURIComponent(ini) +
-      '&fechaFin='   + encodeURIComponent(fin);
-    await fetch(url);
+    await updateDoc(
+      doc(db, 'congregaciones', CONGRE_ID, 'territorios', String(modalTerr), 'historial', editingRow),
+      data
+    );
   } else {
-    const url = SCRIPT_URL + '?action=saveRecord&grupo=' + encodeURIComponent(selectedGrupo) +
-      '&territorio=' + encodeURIComponent(modalTerr) + '&conductor=' + encodeURIComponent(conductor) +
-      '&fechaInicio='+ encodeURIComponent(ini) + '&fechaFin=' + encodeURIComponent(fin);
-    await fetch(url);
+    await addDoc(histCol(modalTerr), data);
   }
   cancelEdit();
   await openModal(modalTerr);
@@ -1338,14 +1284,13 @@ async function setTerritoryEstado(estado) {
   const n = modalTerr;
   if (estado === 'normal') delete configData[n]; else configData[n] = estado;
   renderInfoGrid();
-  const url = SCRIPT_URL + '?action=setConfig&grupo=' + encodeURIComponent(selectedGrupo) +
-    '&territorio=' + encodeURIComponent(n) + '&estado=' + encodeURIComponent(estado);
-  await fetch(url);
+  // Actualizar el campo `tipo` en el documento del territorio en Firestore
+  await updateDoc(doc(terrCol(), String(n)), { tipo: estado });
 }
 
-/* ─────────────────────────────────────────
-   HISTORIAL
-───────────────────────────────────────── */
+// ─────────────────────────────────────────
+//   HISTORIAL DE SALIDAS
+// ─────────────────────────────────────────
 async function goToHistorial() {
   hide('view-modo'); show('view-historial');
   const titulo = document.getElementById('hist-titulo');
@@ -1353,11 +1298,21 @@ async function goToHistorial() {
   titulo.style.color = GCOLORS[selectedGrupo] || '#97C459';
   show('hist-loading'); hide('hist-content'); hide('hist-error');
   try {
-    const url = SCRIPT_URL + '?action=getHistorial&grupo=' + encodeURIComponent(selectedGrupo);
-    const resp = await fetch(url);
-    const data = JSON.parse(await resp.text());
+    const q = query(
+      salidaCol(),
+      where('grupoId', '==', String(selectedGrupo)),
+      orderBy('fechaReg', 'desc')
+    );
+    const snap = await getDocs(q);
     hide('hist-loading');
-    renderHistorialSalidas(data.rows || []);
+    const rows = [];
+    snap.forEach(d => {
+      const data = d.data();
+      (data.salidas || []).forEach(s => {
+        rows.push({ ...s, fechaReg: data.fechaReg, salidaDocId: d.id });
+      });
+    });
+    renderHistorialSalidas(rows, snap.docs);
     show('hist-content');
   } catch(err) {
     hide('hist-loading');
@@ -1366,37 +1321,36 @@ async function goToHistorial() {
   }
 }
 
-function renderHistorialSalidas(rows) {
+function renderHistorialSalidas(rows, docs) {
   const c = document.getElementById('hist-content');
   c.innerHTML = '';
   if (rows.length === 0) {
     c.innerHTML = '<div style="text-align:center;color:#888;padding:2rem;font-size:14px;">No hay salidas registradas todavía.</div>';
     return;
   }
+  // Agrupar por salidaDocId (cada documento = una semana registrada)
   const grupos = {}, orden = [];
   rows.forEach(r => {
-    const key = fmtHistDate(r.fechaReg);
-    if (!grupos[key]) { grupos[key] = { rows:[], minRowIndex: r.rowIndex }; orden.push(key); }
-    grupos[key].rows.push(r);
-    if (r.rowIndex < grupos[key].minRowIndex) grupos[key].minRowIndex = r.rowIndex;
+    if (!grupos[r.salidaDocId]) { grupos[r.salidaDocId] = { rows:[], fechaReg: r.fechaReg }; orden.push(r.salidaDocId); }
+    grupos[r.salidaDocId].rows.push(r);
   });
-  orden.forEach(fecha => {
-    const g = grupos[fecha];
+  orden.forEach(docId => {
+    const g = grupos[docId];
     const group = document.createElement('div');
     group.className = 'hist-registro-group';
     group.innerHTML = `
       <div class="hist-registro-header">
-        <span class="hist-registro-fecha">Semana del ${fecha}</span>
-        <button class="hist-registro-del" onclick="deleteHistorialGrupo(${g.minRowIndex}, ${g.rows.length}, this)">Eliminar semana</button>
+        <span class="hist-registro-fecha">Semana del ${fmtHistDate(g.fechaReg)}</span>
+        <button class="hist-registro-del" onclick="deleteHistorialDoc('${docId}', this)">Eliminar semana</button>
       </div>`;
     g.rows.forEach(r => {
       const esTel = String(r.terr).toUpperCase().includes('TEL');
-      const dia   = getDiaFromFecha(fmtHistDate(r.fecha));
+      const dia   = getDiaFromFecha(r.fecha ? fmtHistDate(r.fecha) : '');
       const row   = document.createElement('div');
       row.className = 'hist-row';
       row.innerHTML = `
         <span class="hist-row-terr ${esTel ? 'hist-row-tel' : ''}">${esTel ? 'Tel.' : 'T.' + r.terr}</span>
-        <span class="hist-row-dia">${dia} ${fmtHistDate(r.fecha)}</span>
+        <span class="hist-row-dia">${dia} ${r.fecha || ''}</span>
         <span class="hist-row-cond">${r.cond}</span>
         <span class="hist-row-hora">${r.hora}</span>`;
       group.appendChild(row);
@@ -1405,33 +1359,28 @@ function renderHistorialSalidas(rows) {
   });
 }
 
-async function deleteHistorialGrupo(startRowIndex, count, btn) {
-  // ── REEMPLAZA confirm() nativo ──
+async function deleteHistorialDoc(docId, btn) {
   const ok = await uiConfirm({
     title: '¿Eliminar semana?',
-    msg: `Se eliminarán ${count} salida${count !== 1 ? 's' : ''} de esta semana. Esta acción no se puede deshacer.`,
+    msg: 'Se eliminará el registro de esta semana. Esta acción no se puede deshacer.',
     confirmText: 'Eliminar',
     cancelText: 'Cancelar',
     type: 'danger'
   });
   if (!ok) return;
   btn.disabled = true;
-  for (let i = count - 1; i >= 0; i--) {
-    const url = SCRIPT_URL + '?action=deleteHistorialRow&grupo=' + encodeURIComponent(selectedGrupo) + '&rowIndex=' + (startRowIndex + i);
-    await fetch(url);
-  }
+  await deleteDoc(doc(db, 'congregaciones', CONGRE_ID, 'salidas', docId));
   await goToHistorial();
 }
 
-/* ─────────────────────────────────────────
-   MAPA POPUP
-───────────────────────────────────────── */
+// ─────────────────────────────────────────
+//   MAPA POPUP
+// ─────────────────────────────────────────
 function openMapaPopup(modo) {
   const popup  = document.getElementById('mapa-popup');
   const iframe = document.getElementById('mapa-iframe');
   const title  = document.getElementById('mapa-popup-title');
   const g      = selectedGrupo;
-
   const grupoLabel = g === 'C' ? 'Congregación' : 'Grupo ' + g;
   title.textContent = modo === 'registrar'
     ? `Mapa — ${grupoLabel} · En progreso`
@@ -1449,9 +1398,7 @@ function openMapaPopup(modo) {
 }
 
 function closeMapaPopup() {
-  const popup  = document.getElementById('mapa-popup');
-  const iframe = document.getElementById('mapa-iframe');
-  popup.style.display = 'none';
-  iframe.src = '';
+  document.getElementById('mapa-popup').style.display = 'none';
+  document.getElementById('mapa-iframe').src = '';
   document.body.style.overflow = '';
 }

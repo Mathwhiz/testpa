@@ -1,143 +1,240 @@
-# CLAUDE.md — Territory App (congsur.lat)
+# CLAUDE.md — Territory App (repo: testpa)
 
-## Visión general
+Este es el repo de **desarrollo activo** de la Territory App para Congregación Sur,
+Santa Rosa, La Pampa, Argentina. Es un fork de pruebas del repo original
+(`mathwhiz.github.io/TerritoryAppJW`) donde se están haciendo cambios grandes,
+principalmente la migración del backend de Google Apps Script + Google Sheets
+a **Firebase (Firestore)**, y la re-arquitectura para soporte **multi-congregación**.
 
-App web interna para **Congregación Sur** (Santa Rosa, La Pampa, Argentina).
-Dos módulos: **Territorios** y **Asignaciones**, accesibles desde `index.html`.
-Hosteada en GitHub Pages (`mathwhiz.github.io/TerritoryAppJW`), dominio custom `congsur.lat`.
-Backend: Google Apps Script + Google Sheets. Control de versiones con GitHub Desktop.
+---
+
+## Estado actual del proyecto
+
+La app está en transición. El backend original era Google Apps Script + Google Sheets.
+Ese sistema **está siendo reemplazado por Firestore** y ya no debe usarse como referencia
+para nuevas funcionalidades. Los archivos `tools/migrate_sheets.py` y
+`tools/territorios_sur.json` son artefactos de esa migración.
+
+**Lo que ya se migró:**
+- Datos de territorios exportados a `territorios_sur.json`
+- Script de migración a Firestore disponible en `tools/migrate_sheets.py`
+
+**Lo que falta:**
+- Subir `territorios_sur.json` a Firestore con el formato correcto
+- Reemplazar las llamadas a `SCRIPT_URL` (Google Apps Script) en `territorios/app.js`
+  por llamadas a Firestore
+- Hacer que `territorios/mapa.html` cargue los polígonos desde Firestore en lugar del
+  array hardcodeado `TERRITORIOS`
+- Migrar el módulo de asignaciones (`asignaciones/app.js`) de su propio Apps Script
+  a Firestore
+- Todo el historial de territorios y salidas a Firestore
+
+---
+
+## Arquitectura objetivo (multi-congregación con Firestore)
+
+```
+congregaciones/{congreId}/
+  ├── (doc de config: nombre, pinEncargado, etc.)
+  ├── grupos/{grupoId}         → colores, PINs, conductores
+  ├── territorios/{terrId}     → polígonos, punto central, grupo, tipo
+  ├── historial/{entryId}      → conductor, fechaInicio, fechaFin, territorioId
+  ├── salidas/{salidaId}       → salidas registradas por semana
+  ├── publicadores/{pubId}     → hermanos y sus roles
+  └── asignaciones/{docId}     → programación de roles por reunión
+```
+
+El flujo de navegación:
+1. `index.html` — el usuario elige su congregación (leída de Firestore)
+2. `menu.html` — elige el módulo (Territorios o Asignaciones)
+3. `territorios/index.html` o `asignaciones/index.html` — funcionalidad específica
+
+La congregación seleccionada se guarda en `sessionStorage` (`congreId`, `congreNombre`)
+y se usa en todas las pantallas siguientes.
 
 ---
 
 ## Estructura de archivos
+
 ```
 /
-├── index.html              # Pantalla principal (selección de módulo)
-├── ui-utils.js             # Utilidades UI compartidas
+├── index.html          # Selector de congregación (lee de Firestore)
+├── menu.html           # Selector de módulo
+├── firebase.js         # Inicialización compartida de Firebase
+├── ui-utils.js         # Componentes UI: modales, pickers, loading, toast, etc.
 ├── favicon.svg
-├── CNAME                   # congsur.lat
-├── congregacionsur.kml     # KML de territorios (no se fetchea — CORS)
 ├── territorios/
-│   ├── index.html
+│   ├── index.html      # App de territorios (cover, planificador, registrar, info, historial)
+│   ├── app.js          # Lógica principal de territorios
 │   ├── styles.css
-│   ├── app.js
-│   └── mapa.html           # Mapa Leaflet + OSM
-└── asignaciones/
-    ├── index.html
-    ├── styles.css
-    └── app.js
+│   └── mapa.html       # Mapa Leaflet con polígonos de territorios
+├── asignaciones/
+│   ├── index.html      # App de asignaciones de reunión
+│   ├── app.js          # Lógica de asignaciones
+│   └── styles.css
+├── congres/
+│   └── config.json     # Config local de congregación (legacy, reemplazar con Firestore)
+└── tools/
+    ├── kml_to_json.py          # Convierte KML de Google My Maps a JSON
+    ├── migrate_sheets.py       # Migra Excel a Firestore
+    ├── territorios_sur.json    # Datos de territorios de Sur (listos para subir)
+    └── congregacionsur.kml     # KML fuente de los polígonos
 ```
 
 ---
 
-## Backend
+## Stack técnico
 
-Google Sheet ID: `1YzCipjiHfQ6MZxfL2HI655E7bGP5xCPLJ_1-6hgjg_0`
-
-**CORS crítico:** Todas las llamadas al Apps Script usan GET simple sin headers.
-- Territorios: `fetch()` directo
-- Asignaciones: JSONP via `apiFetch()`
-
-No agregar headers ni cambiar a POST.
+- **Frontend:** HTML + CSS + JS vanilla (sin frameworks)
+- **Hosting:** GitHub Pages (repo testpa)
+- **Base de datos:** Firebase Firestore
+- **Autenticación:** ninguna (acceso por PIN por grupo, hardcodeado en el cliente)
+- **Mapa:** Leaflet.js + OpenStreetMap tiles
+- **Imagen para compartir:** html2canvas (CDN)
+- **Analytics:** PostHog (snippet en los HTML)
+- **CORS:** las llamadas a Firestore no tienen problemas de CORS a diferencia del Apps Script
 
 ---
 
-## Grupos
+## Firebase
+
+Proyecto: `appjw-3697e`
+
+```js
+// firebase.js — importar así en cada módulo:
+import { db } from '../firebase.js';
+```
+
+El archivo `firebase.js` en la raíz inicializa la app y exporta `db` (Firestore).
+Usa módulos ES (`import/export`), por eso los scripts que lo usan necesitan
+`type="module"` en el HTML.
+
+**Importante:** `tools/serviceAccountKey.json` está en `.gitignore` y nunca debe
+commitearse.
+
+---
+
+## Módulo de Territorios
+
+### Configuración de grupos
 
 | Grupo | Color | PIN |
 |-------|-------|-----|
-| 1 | `#378ADD` | `1111` |
-| 2 | `#EF9F27` | `2222` |
-| 3 | `#97C459` | `3333` |
-| 4 | `#D85A30` | `4444` |
-| C | `#7F77DD` | `5555` |
+| 1 | `#378ADD` | 1111 |
+| 2 | `#EF9F27` | 2222 |
+| 3 | `#97C459` | 3333 |
+| 4 | `#D85A30` | 4444 |
+| Congregación | `#7F77DD` | 5555 |
 
-Territorios especiales: `131` → `no_predica`, `11` → `peligroso` (en Config sheet)
+### Territorios especiales (Config en Firestore)
+- `131` → no se predica
+- `11` → peligroso
 
----
+### El mapa (`mapa.html`)
 
-## Módulo Territorios
+Usa Leaflet.js con tiles de OpenStreetMap. Actualmente tiene el array `TERRITORIOS`
+hardcodeado con ~196 polígonos extraídos del KML. **El objetivo es reemplazar ese array
+por una carga desde Firestore** usando el `congreId` de `sessionStorage`.
 
-### Flujo
-```
-Cover → PIN → Menú → Planificar / Registrar / Ver grupo / Historial / Mapa
-```
+Modos de operación del mapa (via URL params):
+- `?modo=full` — mapa completo con filtros por grupo
+- `?modo=info` — coloreado por días desde último uso
+- `?modo=registrar&enprogreso=92,113,...` — muestra solo territorios en progreso
+- `?modo=picker&grupo=3&salidaid=2` — selector de territorio para el planificador;
+  devuelve resultado al padre via `postMessage`
 
-### Plantillas de salidas
-- **Grupos 1–4:** 1 tel (mar 17:30) + 3 campo (mar/jue/vie 18:30)
-- **Congregación:** 7 campo (lun-dom) + bloque tel fija (ID `844 0225 6636` / clave `479104`)
+Los polígonos tienen sub-polígonos con sufijos a/b/c (ej: 92a, 92b, 92c) que mapean
+al mismo número de territorio.
 
-### Regla crítica de fechas
+### Datos de territorios en Firestore
+
+Formato del documento `territorios/{terrId}`:
 ```js
-// ✅ Correcto
-`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`
-
-// ❌ Nunca — bug UTC-3
-d.toISOString().split('T')[0]
+{
+  id: 1,
+  nombre: "Territorio 1",
+  grupoId: "3",
+  tipo: "normal" | "peligroso" | "no_predica",
+  punto: [-36.626487, -64.279078],   // centro para label del mapa
+  poligonos: [                        // lista de sub-polígonos
+    [[-36.625657, -64.281306], ...]
+  ]
+}
 ```
-Sheets: fechas con prefijo apóstrofe `'DD/MM/YY` para evitar conversión serial.
-
-### Mapa (`mapa.html`)
-- Polígonos embebidos en array `TERRITORIOS` (no se fetchean del KML)
-- Sub-polígonos con sufijo letra → `baseNum()` los agrupa
-- Modos via query string: `full`, `picker&salidaid=N`, `registrar`, `info`
-- Picker devuelve: `postMessage({ type: 'picker-result', salidaId, territorios })`
-- Navegación entre módulo y mapa via `sessionStorage.setItem('selectedGrupo', grupo)`
 
 ---
 
-## Módulo Asignaciones
+## Módulo de Asignaciones
 
-### Roles en tabla
-`LECTOR`, `SONIDO_1/2`, `PLATAFORMA`, `MICROFONISTAS_1/2`, `ACOMODADOR_AUDITORIO`,
-`ACOMODADOR_ENTRADA`, `PRESIDENTE` (omitido Miércoles), `REVISTAS`, `PUBLICACIONES`
+Gestiona la programación de roles para las reuniones (Miércoles y Sábado).
 
-### PIN encargado
-`PIN_ENCARGADO = '1234'` (hardcodeado en `asignaciones/app.js`)
+### Roles de reunión
+`LECTOR`, `SONIDO_1`, `SONIDO_2`, `PLATAFORMA`, `MICROFONISTAS_1`, `MICROFONISTAS_2`,
+`ACOMODADOR_AUDITORIO`, `ACOMODADOR_ENTRADA`, `PRESIDENTE`, `REVISTAS`, `PUBLICACIONES`
 
----
+### Roles extra (solo para lista de hermanos)
+`CONDUCTOR_GRUPO_1..4`, `CONDUCTOR_CONGREGACION`
 
-## ui-utils.js — API pública
+### Telefónica fija de Congregación
+- ID: `844 0225 6636`
+- Contraseña: `479104`
+- PIN encargado de asignaciones: `1234` (hardcodeado en `asignaciones/app.js`)
 
-| Función | Descripción |
-|---------|-------------|
-| `uiConfirm({title, msg, confirmText, cancelText, type})` | Modal confirm. `type`: `warn`/`danger`/`info`/`purple` |
-| `uiAlert(msg, title)` | Modal informativo |
-| `uiDatePicker({value, min, label})` | Bottom sheet fecha |
-| `uiTimePicker({value, label})` | Bottom sheet hora (teclado numérico) |
-| `uiConductorPicker({conductores, value, label})` | Bottom sheet con búsqueda |
-| `uiTerritorioPicker({territoriosData, allData, grupo, configData, label})` | Bottom sheet territorios |
-| `uiLoading.show(text)` / `.hide()` | Overlay de carga |
-| `uiToast(msg, type)` | Toast. `type`: `success`/`error` |
-| `upgradeInputs(container)` | Reemplaza inputs date/time/select por botones con pickers |
-
-**Nunca usar `confirm()`, `alert()`, `prompt()` nativos.**
-
-`upgradeInputs()` se auto-ejecuta via `MutationObserver`. Llamarlo manualmente en nodos dinámicos si es necesario.
+### Comunicación entre módulos
+`territorios/app.js` consulta el módulo de asignaciones para obtener los conductores
+por grupo. Actualmente lo hace via fetch al Apps Script de asignaciones. Con Firestore
+leerá directamente de `congregaciones/{congreId}/publicadores` filtrando por rol.
 
 ---
 
-## Estilos
+## ui-utils.js
 
-- Tema oscuro: `#1e1e1e` bg · `#eee` texto · `#2a2a2a` cards · `#252525` modales
-- Max-width: apps `480px`, covers `320–340px`
-- Fuente: `system-ui, sans-serif`
-- Vistas con clase `.view` tienen `fadeIn` 0.2s
-- `.btn-home`: `fixed top-right`, oculto por defecto, visible con `.visible`
-- `.offline-banner`: `fixed top`, oculto por defecto, visible con `.visible`
-- Los inputs de fecha/hora se reemplazan visualmente por `.ui-fake-input` via `upgradeInputs()`
+Librería de componentes UI compartida. Inyecta CSS global y expone:
 
-Versionado de assets: `styles.css?v=1.1` — incrementar al hacer cambios.
+- `uiConfirm({ title, msg, confirmText, cancelText, type })` → `Promise<boolean>`
+- `uiAlert(msg, title)` → `Promise<void>`
+- `uiDatePicker({ value, min, label })` → `Promise<string|null>` (ISO date)
+- `uiTimePicker({ value, label })` → `Promise<string|null>` (HH:MM)
+- `uiConductorPicker({ conductores, value, label, color })` → `Promise<string|null>`
+- `uiTerritorioPicker({ territoriosData, allData, grupo, configData, label, color })` → `Promise<string|null>`
+- `uiLoading.show(text)` / `uiLoading.hide()`
+- `uiToast(msg, type, duration)`
+- `upgradeInputs(container)` — reemplaza inputs `date`/`time`/`select` nativos por los pickers custom
 
 ---
 
-## Pendiente
+## Convenciones de fechas
 
-- Confirmar conductores de Grupos 1, 2, 4 con sus líderes
-- Compartir app con otros líderes una vez completa
+- **Siempre** formatear fechas con hora local, nunca `toISOString()` (causa bugs UTC-3)
+- Formato de almacenamiento: `YYYY-MM-DD` como string
+- Formato de display: `DD/MM/YY`
 
-## Fuera de scope
+```js
+// Correcto:
+function fmtDate(d) {
+  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+}
+```
 
-- Modo offline / Service Worker
-- Validación en Sheets
-- Compartir tabla por WhatsApp como texto (solo imagen via `html2canvas`)
+---
+
+## Decisiones de arquitectura
+
+- **Sin CORS con Firestore:** a diferencia del Google Apps Script que requería JSONP,
+  Firestore SDK funciona directamente desde el browser sin problemas de CORS
+- **KML no se fetchea en runtime:** los polígonos del mapa no se cargan del KML de
+  Google My Maps porque tiene CORS. Se procesan offline con `kml_to_json.py` y se
+  suben a Firestore
+- **sessionStorage para navegación:** `congreId` y `congreNombre` persisten entre
+  pantallas via `sessionStorage`
+- **Sin build system:** todo JS vanilla, sin bundler, sin transpilación
+
+---
+
+## Lo que NO hacer
+
+- No crear nuevas funcionalidades que consuman el Google Apps Script (`SCRIPT_URL`)
+- No hardcodear datos de territorios en el HTML/JS (eso es lo que se está migrando)
+- No usar `toISOString()` para fechas (timezone bug)
+- No commitear `tools/serviceAccountKey.json`
+- No fetchear el KML de Google My Maps en runtime (CORS)
