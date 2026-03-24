@@ -1421,9 +1421,12 @@ window.pinCancel = pinCancel;
 window.openPin = openPin;
 window.generatePreview = generatePreview;
 window.guardarImagen = guardarImagen;
-window.enviarWhatsapp = enviarWhatsapp;
 window.registrarEnProgreso = registrarEnProgreso;
 window.goBackToConfig = goBackToConfig;
 window.addSalida = addSalida;
 window.cambiarSemana = cambiarSemana;
 window.closeMapaPopup = closeMapaPopup;
+window.openTerritorioPicker = openTerritorioPicker;
+window.openConductorPicker = openConductorPicker;
+
+checkAuth();
