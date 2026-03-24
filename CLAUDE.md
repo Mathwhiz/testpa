@@ -5,15 +5,7 @@ Fork del repo original (`mathwhiz.github.io/TerritoryAppJW`) donde se migró el 
 de Google Apps Script + Google Sheets a **Firebase Firestore**, y se agregó soporte
 **multi-congregación**.
 
----
-
-## Estado actual
-
-La migración a Firestore está **completa**. No hay más llamadas a Apps Script.
-
-**Lo único pendiente:**
-- PINs de grupos (1111, 2222, etc.) hardcodeados en `territorios/app.js` — deberían venir de `congregaciones/{congreId}/grupos/{id}.pin`
-- PIN del encargado (`1234`) hardcodeado en `asignaciones/app.js` — debería venir de `congregaciones/{congreId}.pinEncargado`
+La migración está **completa**. No hay más llamadas a Apps Script.
 
 ---
 
@@ -21,19 +13,23 @@ La migración a Firestore está **completa**. No hay más llamadas a Apps Script
 
 ```
 congregaciones/{congreId}/
-  ├── (doc: nombre, pinEncargado, ...)
-  ├── grupos/{grupoId}         → color, pin, conductor
-  ├── territorios/{terrId}     → polígonos, punto, grupoId, tipo
+  ├── (doc: nombre, pinEncargado, creadoEn)
+  ├── grupos/{grupoId}         → id, label, color, pin
+  ├── territorios/{terrId}     → id, nombre, tipo, grupoId, punto, poligonos
   ├── historial/{entryId}      → conductor, fechaInicio, fechaFin, territorioId
   ├── salidas/{salidaId}       → salidas por semana
-  ├── publicadores/{pubId}     → hermanos y sus roles
-  └── asignaciones/{docId}     → programación de roles por reunión
+  ├── publicadores/{pubId}     → nombre, roles, activo
+  └── asignaciones/{docId}     → fecha, diaSemana, roles
+
+config/superadmin              → pin  ← PIN del panel de admin
 ```
 
 Flujo de navegación:
-1. `index.html` — elige congregación (lee de Firestore → guarda en `sessionStorage`)
+1. `index.html` — elige congregación (Firestore → `sessionStorage`)
 2. `menu.html` — elige módulo (Territorios o Asignaciones)
 3. `territorios/index.html` o `asignaciones/index.html`
+
+El ID de congregación es un slug legible (ej: `"sur"`, `"norte"`), elegido al crear.
 
 ---
 
@@ -41,8 +37,10 @@ Flujo de navegación:
 
 ```
 /
-├── index.html          # Selector de congregación
+├── index.html          # Selector de congregación (con botón Admin abajo a la derecha)
 ├── menu.html           # Selector de módulo
+├── admin.html          # Panel de superadmin (acceso por URL + PIN)
+├── admin.js            # Lógica del panel de admin
 ├── firebase.js         # Inicialización compartida de Firebase (exporta `db`)
 ├── ui-utils.js         # Componentes UI: modales, pickers, loading, toast
 ├── favicon.svg
@@ -55,15 +53,35 @@ Flujo de navegación:
 │   ├── index.html      # App de asignaciones
 │   ├── app.js          # Lógica de asignaciones (100% Firestore)
 │   └── styles.css
-├── congres/
-│   └── config.json     # Legacy, ya no se usa
-└── tools/
-    ├── kml_to_json.py          # KML → JSON (ya se usó)
-    ├── migrate_sheets.py       # Excel → Firestore (ya se usó)
-    ├── upload_territorios.py   # Sube territorios_sur.json a Firestore (ya se usó)
-    ├── territorios_sur.json    # Datos de ~196 territorios (ya subidos)
-    └── congregacionsur.kml     # KML fuente
+└── tools/              # Scripts de migración one-time (ya ejecutados, conservar como referencia)
+    ├── kml_to_json.py
+    ├── migrate_sheets.py
+    ├── upload_territorios.py
+    ├── territorios_sur.json
+    └── congregacionsur.kml
 ```
+
+---
+
+## Panel de Admin (`admin.html`)
+
+Acceso: URL directa → PIN (desde `config/superadmin → { pin }` en Firestore).
+
+**Funcionalidades:**
+- Listar congregaciones existentes
+- **Crear congregación** (wizard 3 pasos):
+  1. Nombre + ID slug (auto-sugerido, ej: `"norte"`) + PIN encargado
+  2. Configurar grupos: label, color, PIN — se pueden agregar/quitar grupos
+  3. Subir KML de Google My Maps (opcional) → parsea polígonos client-side
+- **Editar** congregación (nombre, PIN, grupos)
+- **Eliminar** congregación (borra todas las subcolecciones + doc)
+- **Asignar territorios a grupos** (📍): lista de territorios con botones de color,
+  filtros por grupo, barra de guardado con batch update
+
+**KML parser** (`parseKML` en `admin.js`):
+- Soporta nombres `"1"`, `"92a"`, `"Territorio 1"`, `"Territorio 1a"`
+- Usa `getElementsByTagName` (compatible con distintos formatos de Google My Maps)
+- Coordenadas KML en formato `lng,lat,alt` → convierte a `{ lat, lng }`
 
 ---
 
@@ -75,7 +93,7 @@ Flujo de navegación:
 - **Mapa:** Leaflet.js + OpenStreetMap
 - **Imagen para compartir:** html2canvas (CDN)
 - **Analytics:** PostHog
-- **Auth:** ninguna — acceso por PIN por grupo
+- **Auth:** ninguna — acceso por PIN por grupo / PIN superadmin
 
 ---
 
@@ -86,15 +104,15 @@ Flujo de navegación:
 import { db } from '../firebase.js';
 ```
 
-- Firebase SDK 11.6.0 (ES modules)
-- Los scripts que usan firebase.js necesitan `type="module"` en el HTML
+- Firebase SDK 11.6.0 (ES modules via gstatic CDN)
+- Scripts que usan firebase.js necesitan `type="module"` en el HTML
 - `tools/serviceAccountKey.json` está en `.gitignore` — nunca commitear
 
 ---
 
 ## Módulo de Territorios
 
-### Grupos
+### Grupos (defaults — vienen de Firestore en runtime)
 
 | Grupo | Color | PIN |
 |-------|-------|-----|
@@ -103,6 +121,8 @@ import { db } from '../firebase.js';
 | 3 | `#97C459` | 3333 |
 | 4 | `#D85A30` | 4444 |
 | Congregación | `#7F77DD` | 5555 |
+
+Los PINs se cargan desde `congregaciones/{congreId}/grupos` al iniciar `territorios/app.js`.
 
 ### Territorios especiales
 - Tipo `no_predica`: territorio 131
@@ -116,17 +136,17 @@ Modos via URL params:
 - `?modo=registrar&enprogreso=92,113,...` — solo territorios en progreso
 - `?modo=picker&grupo=3&salidaid=2` — selector; devuelve resultado al padre via `postMessage`
 
-Sub-polígonos usan sufijos letra (92a, 92b, 92c) que mapean al mismo territorio.
+Sub-polígonos usan sufijos letra (92a, 92b) que mapean al mismo territorio base.
 
 ### Formato de territorio en Firestore
 
 ```js
 {
-  id: 1,
-  nombre: "Territorio 1",
-  grupoId: "3",
-  tipo: "normal" | "peligroso" | "no_predica",
-  punto: { lat: -36.626487, lng: -64.279078 },
+  id:       1,
+  nombre:   "Territorio 1",
+  tipo:     "normal" | "peligroso" | "no_predica",
+  grupoId:  "3",           // null si no asignado
+  punto:    { lat, lng },  // centro para label (puede ser null)
   poligonos: [{ coords: [{ lat, lng }, ...] }]
 }
 ```
@@ -140,11 +160,10 @@ Sub-polígonos usan sufijos letra (92a, 92b, 92c) que mapean al mismo territorio
 `ACOMODADOR_AUDITORIO`, `ACOMODADOR_ENTRADA`, `PRESIDENTE`, `REVISTAS`, `PUBLICACIONES`
 
 ### Roles extra (solo en lista de publicadores)
-`CONDUCTOR_GRUPO_1`, `CONDUCTOR_GRUPO_2`, `CONDUCTOR_GRUPO_3`, `CONDUCTOR_GRUPO_4`,
-`CONDUCTOR_CONGREGACION`
+`CONDUCTOR_GRUPO_1..4`, `CONDUCTOR_CONGREGACION`
 
 ### Datos relevantes
-- PIN encargado: `1234` (hardcodeado en `asignaciones/app.js`, pendiente mover a Firestore)
+- PIN encargado: viene de `congregaciones/{congreId}.pinEncargado`
 - Telefónica fija: ID `844 0225 6636` / Contraseña `479104`
 
 ---
@@ -172,7 +191,6 @@ Sub-polígonos usan sufijos letra (92a, 92b, 92c) que mapean al mismo territorio
 Siempre formatear con hora local — nunca `toISOString()` (bug UTC-3).
 
 ```js
-// Correcto:
 function fmtDate(d) {
   return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
 }
