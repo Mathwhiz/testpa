@@ -744,7 +744,7 @@ function openMapaPicker(salidaId) {
   const title  = document.getElementById('mapa-popup-title');
   const grupoLabel = selectedGrupo === 'C' ? 'Congregación' : 'Grupo ' + selectedGrupo;
   title.textContent = `Elegir territorio — ${grupoLabel}`;
-  iframe.src = `mapa.html?grupo=${selectedGrupo}&modo=picker&salidaid=${salidaId}`;
+  iframe.src = `mapa.html?grupo=${selectedGrupo}&modo=picker&salidaid=${salidaId}&info=1`;
   popup.style.display = 'flex';
   document.body.style.overflow = 'hidden';
 }

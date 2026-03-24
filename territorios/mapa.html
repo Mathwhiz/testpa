@@ -402,7 +402,7 @@ function renderTerritories() {
 
     // MODO FULL e INFO
     let c;
-    if (_modoParam === 'info') {
+    if (_modoParam === 'info' || _modoParam === 'picker') {
       const info     = territoriosInfo[baseNum(t.num)] || {};
       const lastDate = info.lastFin || info.lastIni;
       c = colorByDias(lastDate ? daysSince(lastDate) : null);
