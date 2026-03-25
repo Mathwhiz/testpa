@@ -242,7 +242,7 @@ async function cargarHistorialInfo() {
           territoriosInfo[id] = {
             lastFin:    h.fechaFin    || null,
             lastIni:    h.fechaInicio || null,
-            enProgreso: !h.fechaFin,
+            enProgreso: !!h.fechaInicio && !h.fechaFin,
           };
         }
       }));
