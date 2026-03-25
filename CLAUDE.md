@@ -1,7 +1,7 @@
-# CLAUDE.md — AppJW (repo: testpa)
+# CLAUDE.md — AppJW (repo: AppJWCongSur)
 
-Repo de desarrollo activo de la Territory App para **múltiples congregaciones**.
-Fork del repo original (`mathwhiz.github.io/TerritoryAppJW`) donde se migró el backend
+Repo **oficial** de la Territory App para **múltiples congregaciones**, hosteada en `congsur.lat`.
+Migrado desde el fork de desarrollo (`testpa`) donde se migró el backend
 de Google Apps Script + Google Sheets a **Firebase Firestore**, y se agregó soporte
 **multi-congregación**.
 
