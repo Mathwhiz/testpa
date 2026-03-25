@@ -4,7 +4,13 @@ import {
   query, where, orderBy
 } from "https://www.gstatic.com/firebasejs/11.6.0/firebase-firestore.js";
 
-const CONGRE_ID = sessionStorage.getItem('congreId') || 'sur';
+const CONGRE_ID     = sessionStorage.getItem('congreId')     || 'sur';
+const CONGRE_NOMBRE = sessionStorage.getItem('congreNombre') || CONGRE_ID;
+
+const congreSubEl = document.getElementById('congre-sub');
+if (congreSubEl) congreSubEl.textContent = CONGRE_NOMBRE;
+const cardCongreEl = document.getElementById('card-congre-nombre');
+if (cardCongreEl) cardCongreEl.textContent = CONGRE_NOMBRE;
 
 function congreRef()  { return doc(db, 'congregaciones', CONGRE_ID); }
 function asigCol()    { return collection(db, 'congregaciones', CONGRE_ID, 'asignaciones'); }

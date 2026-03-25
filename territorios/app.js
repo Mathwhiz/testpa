@@ -5,7 +5,11 @@ import {
 } from "https://www.gstatic.com/firebasejs/11.6.0/firebase-firestore.js";
 
 // ── congreId viene de sessionStorage (seteado en index.html al elegir congregación) ──
-const CONGRE_ID = sessionStorage.getItem('congreId') || 'sur';
+const CONGRE_ID     = sessionStorage.getItem('congreId')     || 'sur';
+const CONGRE_NOMBRE = sessionStorage.getItem('congreNombre') || CONGRE_ID;
+
+const congreSubEl = document.getElementById('congre-sub');
+if (congreSubEl) congreSubEl.textContent = CONGRE_NOMBRE;
 
 function congreRef()  { return doc(db, 'congregaciones', CONGRE_ID); }
 function terrCol()    { return collection(db, 'congregaciones', CONGRE_ID, 'territorios'); }
@@ -841,7 +845,7 @@ function generatePreview() {
   const color = GROUP_COLORS[selectedGrupo] || '#eee';
   document.getElementById('preview-grupo-title').textContent = `${grupoLabel} — Salidas de la semana`;
   document.getElementById('preview-grupo-color').innerHTML  = `<span style="color:${color}">${grupoLabel}</span>`;
-  document.getElementById('preview-congre-color').innerHTML = `<span style="color:#7F77DD">Congregación Sur</span>`;
+  document.getElementById('preview-congre-color').innerHTML = `<span style="color:#7F77DD">${CONGRE_NOMBRE}</span>`;
   document.querySelector('.card-preview').style.borderColor = color;
   document.querySelector('.card-preview-header').style.borderBottomColor = color;
   const colorOscuro = { '1':'#0c2a45', '2':'#2e1e00', '3':'#1a2e0a', '4':'#2e1000', 'C':'#1e1a3a' };
