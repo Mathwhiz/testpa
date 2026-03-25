@@ -33,7 +33,9 @@ const ROLES_LABELS = {
 const ROLES = Object.keys(ROLES_LABELS);
 
 const ROL_LISTA_MAP = {
+  SONIDO:          'SONIDO_1',
   SONIDO_2:        'SONIDO_1',
+  MICROFONISTAS:   'MICROFONISTAS_1',
   MICROFONISTAS_2: 'MICROFONISTAS_1',
 };
 
@@ -74,12 +76,23 @@ const DIA_BG = {
 
 /* ─── PIN ─── */
 let PIN_ENCARGADO = null;
+let SCRIPT_URL    = null;
 
 (async function cargarConfig() {
   try {
     const snap = await getDoc(congreRef());
-    if (snap.exists() && snap.data().pinEncargado) {
-      PIN_ENCARGADO = snap.data().pinEncargado;
+    if (snap.exists()) {
+      const data = snap.data();
+      if (data.pinEncargado) {
+        PIN_ENCARGADO = data.pinEncargado;
+      } else {
+        await uiAlert('No se encontró el PIN del encargado en la base de datos.', 'Error de configuración');
+      }
+      if (data.scriptUrl) {
+        SCRIPT_URL = data.scriptUrl;
+        const btn = document.getElementById('btn-guardar-planilla');
+        if (btn) btn.style.display = '';
+      }
     } else {
       await uiAlert('No se encontró el PIN del encargado en la base de datos.', 'Error de configuración');
     }
@@ -742,6 +755,9 @@ function generarAutomatico() {
   const hoy = new Date(); hoy.setHours(0,0,0,0);
   const desdeVal = document.getElementById('auto-desde')?.value;
   const hastaVal = document.getElementById('auto-hasta')?.value;
+  const usarHistorial = document.getElementById('auto-usar-historial')?.checked ?? false;
+  const reemplazar    = document.getElementById('auto-reemplazar')?.checked ?? false;
+
   const fechaDesde = desdeVal ? new Date(desdeVal + 'T00:00:00') : new Date(hoy);
   const finRango   = hastaVal ? new Date(hastaVal + 'T00:00:00') : (() => { const d = new Date(hoy); d.setMonth(d.getMonth()+3); return d; })();
   const fechasExistentes = new Set(todasLasFilas.map(r => r.fecha));
@@ -751,26 +767,53 @@ function generarAutomatico() {
     const dow = cursor.getDay();
     if (dow === 3 || dow === 6) {
       const f = fmtFecha(cursor);
-      if (!fechasExistentes.has(f))
+      if (reemplazar || !fechasExistentes.has(f))
         fechasAGenerar.push({ fecha: f, dia: dow === 3 ? 'Miércoles' : 'Sábado' });
     }
     cursor.setDate(cursor.getDate() + 1);
   }
   if (fechasAGenerar.length === 0) {
     hide('auto-loading');
-    setText('auto-status', 'Ya existe programación para los próximos 3 meses.');
+    setText('auto-status', reemplazar
+      ? 'No hay reuniones en el rango elegido.'
+      : 'Ya existe programación para ese rango.');
     show('auto-guardar-wrap');
     autoResult = [];
     return;
   }
+
+  // Calcular punto de inicio de la rotación por rol
   const indices = {};
+  const filasOrd = [...todasLasFilas].sort((a, b) => fechaToNum(a.fecha) - fechaToNum(b.fecha));
   ROLES.forEach(r => {
     const listaKey = ROL_LISTA_MAP[r] || r;
-    indices[r] = todasLasFilas.length % Math.max((hermanos[listaKey]||[]).length, 1);
+    const lista = hermanos[listaKey] || [];
+    if (lista.length === 0) { indices[r] = 0; return; }
+    if (!usarHistorial) {
+      // Sin historial: arrancar desde donde dejó el total de filas (comportamiento original)
+      indices[r] = filasOrd.length % lista.length;
+      return;
+    }
+    // Con historial: buscar el último asignado a este rol y arrancar desde el siguiente
+    let ultimoAsignado = null;
+    for (let i = filasOrd.length - 1; i >= 0; i--) {
+      if (filasOrd[i][r]) { ultimoAsignado = filasOrd[i][r]; break; }
+    }
+    if (!ultimoAsignado) { indices[r] = 0; return; }
+    const idx = lista.findIndex(h => norm(h) === norm(ultimoAsignado));
+    indices[r] = idx >= 0 ? (idx + 1) % lista.length : 0;
   });
+
+  // Offsetear _2 para que no coincidan con _1 en la misma reunión
+  if ((hermanos['SONIDO_1']||[]).length > 1)
+    indices['SONIDO_2'] = (indices['SONIDO_1'] + 1) % hermanos['SONIDO_1'].length;
+  if ((hermanos['MICROFONISTAS_1']||[]).length > 1)
+    indices['MICROFONISTAS_2'] = (indices['MICROFONISTAS_1'] + 1) % hermanos['MICROFONISTAS_1'].length;
+
   autoResult = fechasAGenerar.map(({ fecha, dia }) => {
     const entry = { fecha, dia };
     ROLES.forEach(r => {
+      if (r === 'PRESIDENTE' && dia === 'Miércoles') { entry[r] = ''; return; }
       const listaKey = ROL_LISTA_MAP[r] || r;
       const lista = hermanos[listaKey] || [];
       if (lista.length === 0) { entry[r] = ''; return; }
@@ -816,6 +859,42 @@ async function guardarAutomatico() {
   } catch(err) {
     if (status){status.style.color='#F09595';status.textContent='Error: '+err.message;}
   }
+}
+
+/* ─── JSONP helper (para Apps Script) ─── */
+function apiFetch(params) {
+  return new Promise((resolve, reject) => {
+    const cbName = '_cb_' + Math.random().toString(36).slice(2);
+    const qs = Object.entries(params).map(([k,v]) => `${k}=${encodeURIComponent(v)}`).join('&');
+    const script = document.createElement('script');
+    const timeout = setTimeout(() => { cleanup(); reject(new Error('Timeout')); }, 15000);
+    function cleanup() {
+      clearTimeout(timeout);
+      delete window[cbName];
+      if (script.parentNode) script.parentNode.removeChild(script);
+    }
+    window[cbName] = data => { cleanup(); resolve(data); };
+    script.src = `${SCRIPT_URL}?${qs}&callback=${cbName}`;
+    script.onerror = () => { cleanup(); reject(new Error('Error de red')); };
+    document.head.appendChild(script);
+  });
+}
+
+async function guardarEnPlanilla() {
+  const status = document.getElementById('auto-status');
+  if (!autoResult.length) { if(status){status.style.color='#888';status.textContent='Nada que guardar.';} return; }
+  if (!SCRIPT_URL) { if(status){status.style.color='#F09595';status.textContent='No hay planilla configurada.';} return; }
+  const btn = document.getElementById('btn-guardar-planilla');
+  if (btn) btn.disabled = true;
+  if (status){status.style.color='#888';status.textContent='Guardando en planilla...';}
+  try {
+    const res = await apiFetch({ action: 'saveProgramacion', data: JSON.stringify(autoResult) });
+    if (res.error) throw new Error(res.error);
+    if (status){status.style.color='#5DCAA5';status.textContent=`✓ ${autoResult.length} reuniones guardadas en planilla`;}
+  } catch(err) {
+    if (status){status.style.color='#F09595';status.textContent='Error planilla: '+err.message;}
+  }
+  if (btn) btn.disabled = false;
 }
 
 /* ─── Tabla imagen ─── */
@@ -1009,6 +1088,7 @@ window.guardarEdicion = guardarEdicion;
 window.goToAutomatico = goToAutomatico;
 window.generarAutomatico = generarAutomatico;
 window.guardarAutomatico = guardarAutomatico;
+window.guardarEnPlanilla = guardarEnPlanilla;
 window.goToGenerarImagen = goToGenerarImagen;
 window.cambiarSemanaImagen = cambiarSemanaImagen;
 window.guardarImagen = guardarImagen;

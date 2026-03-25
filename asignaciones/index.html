@@ -255,8 +255,9 @@
       <button class="btn-secondary" onclick="showView('view-encargado')" style="flex:1;">← Volver</button>
       <button class="btn-primary" onclick="generarAutomatico()" style="flex:2;">⚡ Generar</button>
     </div>
-    <div id="auto-guardar-wrap" style="display:none;margin-top:8px;">
-      <button class="btn-guardar" style="width:100%;" onclick="guardarAutomatico()">Guardar en planilla</button>
+    <div id="auto-guardar-wrap" style="display:none;margin-top:8px;flex-direction:column;gap:8px;">
+      <button class="btn-guardar" style="width:100%;" onclick="guardarAutomatico()">Guardar</button>
+      <button id="btn-guardar-planilla" class="btn-secondary" style="width:100%;display:none;" onclick="guardarEnPlanilla()">Guardar también en planilla</button>
       <div class="save-status" id="auto-status"></div>
     </div>
   </div>
