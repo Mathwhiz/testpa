@@ -12,7 +12,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Asignaciones — Congregación Sur</title>
-<link rel="stylesheet" href="styles.css?v=1.1">
+<link rel="stylesheet" href="styles.css?v=1.2">
 </head>
 <body>
 
@@ -289,13 +289,30 @@
   <div id="view-gestionar" class="view" style="display:none;">
     <p class="section-title">Hermanos</p>
     <p class="section-sub">Lista completa · tocá para editar</p>
-    <div style="display:flex;gap:8px;margin-bottom:12px;">
+    <div style="display:flex;gap:8px;margin-bottom:8px;">
       <div class="search-box" style="flex:1;margin-bottom:0;">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><circle cx="11" cy="11" r="8" stroke="#888" stroke-width="1.8"/><path d="m21 21-4.35-4.35" stroke="#888" stroke-width="1.8" stroke-linecap="round"/></svg>
         <input type="text" id="gestionar-search" placeholder="Buscar hermano..." oninput="filtrarLista()" autocomplete="off">
       </div>
       <button class="btn-primary" onclick="abrirNuevoHermano()" style="padding:10px 14px;white-space:nowrap;">+ Nuevo</button>
     </div>
+    <select id="gestionar-rol" onchange="filtrarLista()" style="width:100%;margin-bottom:12px;font-size:13px;padding:7px 10px;border:0.5px solid #555;border-radius:8px;background:#1e1e1e;color:#aaa;appearance:none;-webkit-appearance:none;">
+      <option value="">— Todos los roles —</option>
+      <option value="LECTOR">Lector</option>
+      <option value="SONIDO">Sonido</option>
+      <option value="PLATAFORMA">Plataforma</option>
+      <option value="MICROFONISTAS">Micrófonos</option>
+      <option value="ACOMODADOR_AUDITORIO">Acod. Auditorio</option>
+      <option value="ACOMODADOR_ENTRADA">Acod. Entrada</option>
+      <option value="PRESIDENTE">Presidente</option>
+      <option value="REVISTAS">Revistas</option>
+      <option value="PUBLICACIONES">Publicaciones</option>
+      <option value="CONDUCTOR_GRUPO_1">Conductor Grupo 1</option>
+      <option value="CONDUCTOR_GRUPO_2">Conductor Grupo 2</option>
+      <option value="CONDUCTOR_GRUPO_3">Conductor Grupo 3</option>
+      <option value="CONDUCTOR_GRUPO_4">Conductor Grupo 4</option>
+      <option value="CONDUCTOR_CONGREGACION">Conductor Congregación</option>
+    </select>
     <div id="gestionar-loading" class="loading-wrap"><div class="spinner"></div><div class="loading-txt">Cargando...</div></div>
     <div id="gestionar-content" style="display:none;">
       <div id="gestionar-lista"></div>

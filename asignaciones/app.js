@@ -427,6 +427,14 @@ async function goToAutomatico() {
   hide('auto-loading'); hide('auto-preview'); hide('auto-guardar-wrap');
   setText('auto-status', '');
   autoResult = [];
+  // Pre-llenar fechas con el rango por defecto (hoy → +3 meses)
+  const desdeEl = document.getElementById('auto-desde');
+  const hastaEl = document.getElementById('auto-hasta');
+  const hoyD = new Date(); hoyD.setHours(0,0,0,0);
+  const finD  = new Date(hoyD); finD.setMonth(finD.getMonth() + 3);
+  const toISO = d => `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+  if (desdeEl && !desdeEl.value) desdeEl.value = toISO(hoyD);
+  if (hastaEl && !hastaEl.value) hastaEl.value = toISO(finD);
   if (Object.keys(hermanos).length === 0)
     try { hermanos = await getHermanos(); } catch(e) {}
   if (todasLasFilas.length === 0)
@@ -732,10 +740,13 @@ function generarAutomatico() {
   }
   show('auto-loading'); hide('auto-preview'); hide('auto-guardar-wrap');
   const hoy = new Date(); hoy.setHours(0,0,0,0);
-  const finRango = new Date(hoy); finRango.setMonth(finRango.getMonth() + 3);
+  const desdeVal = document.getElementById('auto-desde')?.value;
+  const hastaVal = document.getElementById('auto-hasta')?.value;
+  const fechaDesde = desdeVal ? new Date(desdeVal + 'T00:00:00') : new Date(hoy);
+  const finRango   = hastaVal ? new Date(hastaVal + 'T00:00:00') : (() => { const d = new Date(hoy); d.setMonth(d.getMonth()+3); return d; })();
   const fechasExistentes = new Set(todasLasFilas.map(r => r.fecha));
   const fechasAGenerar = [];
-  const cursor = new Date(hoy);
+  const cursor = new Date(fechaDesde);
   while (cursor <= finRango) {
     const dow = cursor.getDay();
     if (dow === 3 || dow === 6) {
@@ -855,8 +866,11 @@ async function goToGestionar() {
   showView('view-gestionar');
   show('gestionar-loading'); hide('gestionar-content');
   setText('gestionar-search', '');
+  const selRol = document.getElementById('gestionar-rol');
+  if (selRol) selRol.value = '';
   try {
     await getHermanos(); // recarga listaHermanos
+    listaHermanos.sort((a, b) => norm(a.nombre).localeCompare(norm(b.nombre)));
     hide('gestionar-loading');
     renderLista(listaHermanos);
     show('gestionar-content');
@@ -892,8 +906,12 @@ function renderLista(lista) {
 }
 
 function filtrarLista() {
-  const q = norm(document.getElementById('gestionar-search')?.value || '');
-  const filtrada = listaHermanos.filter(h => norm(h.nombre).includes(q));
+  const q   = norm(document.getElementById('gestionar-search')?.value || '');
+  const rol = document.getElementById('gestionar-rol')?.value || '';
+  const filtrada = listaHermanos.filter(h =>
+    norm(h.nombre).includes(q) &&
+    (!rol || (h.roles || []).includes(rol))
+  );
   renderLista(filtrada);
 }
 
