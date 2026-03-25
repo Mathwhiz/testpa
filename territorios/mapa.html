@@ -258,7 +258,7 @@ async function initMap() {
     document.getElementById('loading-text').textContent = 'Cargando territorios...';
     await cargarTerritorios();
 
-    // Solo cargar historial si lo necesitamos
+    // En info/picker el historial es necesario antes de renderizar (colorea polígonos)
     if (_modoParam === 'info' || _modoParam === 'picker') {
       document.getElementById('loading-text').textContent = 'Cargando historial...';
       await cargarHistorialInfo();
@@ -296,6 +296,11 @@ async function initMap() {
   setTimeout(() => { map.invalidateSize(); }, 100);
 
   renderTerritories();
+
+  // En modo full cargamos el historial en background (el mapa ya está visible)
+  if (_modoParam === 'full') {
+    cargarHistorialInfo().catch(e => console.warn('Historial:', e));
+  }
 
   if (_modoParam === 'picker' || _params.get('picker') === '1') {
     applyPickerFilter(_grupoParam);
