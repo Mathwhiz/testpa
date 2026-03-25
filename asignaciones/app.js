@@ -918,13 +918,12 @@ async function guardarEnPlanilla() {
   if (!SCRIPT_URL) { if(status){status.style.color='#F09595';status.textContent='No hay planilla configurada.';} return; }
   const btn = document.getElementById('btn-guardar-planilla');
   if (btn) btn.disabled = true;
-  if (status){status.style.color='#888';status.textContent='Guardando en planilla...';}
-  try {
-    await apiFetch({ action: 'saveProgramacion', data: JSON.stringify(autoResult) });
-    if (status){status.style.color='#5DCAA5';status.textContent=`✓ Enviado a la planilla (${autoResult.length} reuniones)`;}
-  } catch(err) {
-    if (status){status.style.color='#F09595';status.textContent='Error planilla: '+err.message;}
+  // Enviar de a una entrada para no exceder el límite de URL de Apps Script
+  for (let i = 0; i < autoResult.length; i++) {
+    if (status){ status.style.color='#888'; status.textContent=`Enviando a planilla... (${i+1}/${autoResult.length})`; }
+    await apiFetch({ action: 'saveProgramacion', data: JSON.stringify([autoResult[i]]) });
   }
+  if (status){status.style.color='#5DCAA5';status.textContent=`✓ Planilla actualizada (${autoResult.length} reuniones)`;}
   if (btn) btn.disabled = false;
 }
 
