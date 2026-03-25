@@ -133,6 +133,26 @@ async function loadDashboard() {
 // ─────────────────────────────────────────
 //   WIZARD
 // ─────────────────────────────────────────
+const PALETA_COLORES = ['#378ADD','#97C459','#7F77DD','#EF9F27','#1D9E75','#D85A30'];
+
+function renderColorSwatches(selectedColor) {
+  const wrap = document.getElementById('w-color-swatches');
+  if (!wrap) return;
+  const colorInput = document.getElementById('w-color');
+  wrap.innerHTML = PALETA_COLORES.map(c => `
+    <div onclick="selectCongreColor('${c}')" style="
+      width:28px;height:28px;border-radius:8px;background:${c};cursor:pointer;
+      box-shadow:${c === selectedColor ? '0 0 0 2px #fff, 0 0 0 4px '+c : '0 2px 6px rgba(0,0,0,0.3)'};
+      transition:.15s;flex-shrink:0;">
+    </div>`).join('');
+  if (colorInput) colorInput.value = selectedColor || '#378ADD';
+}
+
+function selectCongreColor(hex) {
+  document.getElementById('w-color').value = hex;
+  renderColorSwatches(hex);
+}
+
 const GRUPOS_DEFAULT = [
   { id: '1', label: 'Grupo 1',      color: '#378ADD', pin: '1111' },
   { id: '2', label: 'Grupo 2',      color: '#EF9F27', pin: '2222' },
@@ -193,6 +213,8 @@ function startWizard(prefill = null) {
   document.getElementById('w-nombre').value  = prefill?.nombre       || '';
   document.getElementById('w-id').value      = isEdit ? editingCongreId : '';
   document.getElementById('w-pin').value     = prefill?.pinEncargado || '';
+  const initColor = prefill?.color || PALETA_COLORES[Math.floor(Math.random() * PALETA_COLORES.length)];
+  renderColorSwatches(initColor);
   document.getElementById('kml-input').value = '';
   document.getElementById('kml-preview').style.display  = 'none';
   document.getElementById('btn-crear').disabled          = !isEdit;
@@ -223,7 +245,7 @@ async function editCongre(id) {
     const grupos = [];
     gruposSnap.forEach(d => grupos.push(d.data()));
     grupos.sort((a, b) => String(a.id) < String(b.id) ? -1 : 1);
-    startWizard({ nombre: data.nombre, pinEncargado: data.pinEncargado, grupos });
+    startWizard({ nombre: data.nombre, pinEncargado: data.pinEncargado, color: data.color || null, grupos });
   } catch(e) {
     uiLoading.hide();
     await uiAlert('Error al cargar los datos: ' + e.message);
@@ -445,7 +467,8 @@ async function crearCongregacion(skipKml) {
         editingCongreId = newId;
       }
       congreId = editingCongreId;
-      await updateDoc(doc(db, 'congregaciones', congreId), { nombre, pinEncargado });
+      const color = document.getElementById('w-color')?.value || null;
+      await updateDoc(doc(db, 'congregaciones', congreId), { nombre, pinEncargado, ...(color && { color }) });
 
       // Reemplazar grupos: borrar existentes y crear los nuevos
       const existSnap = await getDocs(collection(db, 'congregaciones', congreId, 'grupos'));
@@ -461,9 +484,11 @@ async function crearCongregacion(skipKml) {
         await uiAlert(`Ya existe una congregación con el ID "${congreId}".`);
         return;
       }
+      const color = document.getElementById('w-color')?.value || PALETA_COLORES[0];
       await setDoc(doc(db, 'congregaciones', congreId), {
         nombre,
         pinEncargado,
+        color,
         creadoEn: Timestamp.now(),
       });
     }
@@ -672,6 +697,8 @@ window.onIdInput         = onIdInput;
 window.startWizard       = startWizard;
 window.editCongre        = editCongre;
 window.deleteCongre      = deleteCongre;
+window.selectCongreColor = selectCongreColor;
+window.renderColorSwatches = renderColorSwatches;
 window.wizardNext        = wizardNext;
 window.wizardPrev        = wizardPrev;
 window.addGrupo          = addGrupo;

@@ -277,7 +277,9 @@
           const id      = doc.id;
           const nombre  = data.nombre || id;
           const inicial = iniciales(nombre);
-          const c       = colorPara(id);
+          const c       = data.color
+            ? { color: data.color, bg: hexToRgba(data.color, 0.18), border: hexToRgba(data.color, 0.35) }
+            : colorPara(id);
 
           const card = document.createElement('button');
           card.className = 'congre-card';

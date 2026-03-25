@@ -161,6 +161,13 @@
         <label>PIN del encargado de asignaciones</label>
         <input type="text" id="w-pin" placeholder="4 dígitos" maxlength="4" inputmode="numeric" autocomplete="off">
       </div>
+      <div class="field">
+        <label>Color de la congregación</label>
+        <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:4px;">
+          <div id="w-color-swatches" style="display:flex;gap:6px;flex-wrap:wrap;"></div>
+          <input type="color" id="w-color" oninput="renderColorSwatches(this.value)" style="width:36px;height:36px;border:none;background:none;cursor:pointer;border-radius:8px;padding:0;" title="Color personalizado">
+        </div>
+      </div>
       <div class="btn-row">
         <button class="btn-secondary" onclick="showView('view-dashboard')">Cancelar</button>
         <button class="btn-primary" onclick="wizardNext()">Siguiente →</button>
