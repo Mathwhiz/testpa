@@ -57,12 +57,14 @@ El ID de congregación es un slug legible (ej: `"sur"`, `"norte"`), elegido al c
 │   ├── index.html      # App de asignaciones
 │   ├── app.js          # Lógica de asignaciones (100% Firestore)
 │   └── styles.css
-└── tools/              # Scripts de migración one-time (ya ejecutados, conservar como referencia)
+└── tools/              # Scripts de migración y sync (conservar como referencia)
     ├── kml_to_json.py
     ├── migrate_sheets.py
     ├── upload_territorios.py
+    ├── sync_historial.py   # Sync incremental de historial desde Excel → Firestore
     ├── territorios_sur.json
     └── congregacionsur.kml
+    # Registro de Asignación de Territorio.xlsx → fuente de datos (no commitear)
 ```
 
 ---
@@ -160,11 +162,19 @@ Sub-polígonos usan sufijos letra (92a, 92b) que mapean al mismo territorio base
 ## Módulo de Asignaciones
 
 ### Roles de reunión
-`LECTOR`, `SONIDO_1`, `SONIDO_2`, `PLATAFORMA`, `MICROFONISTAS_1`, `MICROFONISTAS_2`,
+`LECTOR`, `SONIDO`, `PLATAFORMA`, `MICROFONISTAS`,
 `ACOMODADOR_AUDITORIO`, `ACOMODADOR_ENTRADA`, `PRESIDENTE`, `REVISTAS`, `PUBLICACIONES`
 
 ### Roles extra (solo en lista de publicadores)
 `CONDUCTOR_GRUPO_1..4`, `CONDUCTOR_CONGREGACION`
+
+### Gestionar hermanos
+- Lista ordenada alfabéticamente al cargar (`norm().localeCompare`)
+- Filtro por rol: `<select id="gestionar-rol">` vacío por defecto, combina con buscador por nombre
+
+### Generar automático
+- Inputs `#auto-desde` / `#auto-hasta` **funcionales**: se pre-llenan con hoy/+3 meses al entrar a la vista y el botón ⚡ Generar los respeta
+- Checkboxes "Tener en cuenta historial previo" y "Reemplazar semanas existentes": **visibles pero sin lógica** — pendiente implementar
 
 ### Datos relevantes
 - PIN encargado: viene de `congregaciones/{congreId}.pinEncargado`
