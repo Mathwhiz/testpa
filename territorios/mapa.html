@@ -207,7 +207,7 @@ async function cargarTerritorios() {
       return Array.isArray(p) ? p : [p.lat, p.lng];
     }
     return poligonos.map((poly, idx) => ({
-      num:    String(t.id) + (poligonos.length > 1 ? String.fromCharCode(97 + idx) : ''),
+      num:    String(t.id) + (poligonos.length > 1 ? String.fromCharCode(65 + idx) : ''),
       grupo:  String(t.grupoId),
       coords: normCoords(poly),
       punto:  normPunto(t.punto),
@@ -283,10 +283,13 @@ async function initMap() {
   }
 
   map = L.map('map', {
-    center: [0, 0],
-    zoom: 2,
+    center: [-36.62, -64.29],
+    zoom: 13,
     zoomControl: false,
     attributionControl: false,
+    maxBounds: [[-36.85, -64.75], [-36.40, -63.95]],
+    maxBoundsViscosity: 1.0,
+    minZoom: 11,
   });
   L.control.zoom({ position: 'bottomright' }).addTo(map);
   L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19 }).addTo(map);
