@@ -77,6 +77,7 @@ const DIA_BG = {
 /* ─── PIN ─── */
 let PIN_ENCARGADO = null;
 let SCRIPT_URL    = null;
+let SHEETS_URL    = null;
 
 (async function cargarConfig() {
   try {
@@ -91,6 +92,11 @@ let SCRIPT_URL    = null;
       if (data.scriptUrl) {
         SCRIPT_URL = data.scriptUrl;
         const btn = document.getElementById('btn-guardar-planilla');
+        if (btn) btn.style.display = '';
+      }
+      if (data.sheetsUrl) {
+        SHEETS_URL = data.sheetsUrl;
+        const btn = document.getElementById('btn-ver-planilla');
         if (btn) btn.style.display = '';
       }
     } else {
@@ -465,6 +471,7 @@ function setAutoDesde(tipo) {
   } else if (tipo === 'ultima') {
     el.value = toISOLocal(getDesdeUltimaGuardada());
   }
+  el.dispatchEvent(new Event('change', { bubbles: true }));
 }
 
 async function goToAutomatico() {
@@ -1118,6 +1125,7 @@ window.guardarEdicion = guardarEdicion;
 window.goToAutomatico = goToAutomatico;
 window.generarAutomatico = generarAutomatico;
 window.setAutoDesde = setAutoDesde;
+window.abrirPlanilla = () => { if (SHEETS_URL) window.open(SHEETS_URL, '_blank'); };
 window.guardarAutomatico = guardarAutomatico;
 window.guardarEnPlanilla = guardarEnPlanilla;
 window.goToGenerarImagen = goToGenerarImagen;
