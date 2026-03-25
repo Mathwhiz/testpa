@@ -84,7 +84,7 @@
     .congre-icon {
       width: 46px; height: 46px; border-radius: 13px;
       display: flex; align-items: center; justify-content: center; flex-shrink: 0;
-      font-size: 18px; font-weight: 700;
+      font-size: 16px; font-weight: 700; letter-spacing: -0.5px;
     }
 
     .congre-info { flex: 1; min-width: 0; }
@@ -102,36 +102,21 @@
       align-items: center;
       gap: 12px;
       width: 100%;
-      max-width: 320px;
+      max-width: 340px;
       padding: 2rem 1rem;
     }
 
-    /* ── Botón volver (fijo arriba-izq) ── */
-    .menu-back {
-      position: fixed;
-      top: 16px;
-      left: 16px;
-      background: #252525;
-      border: 1px solid rgba(255,255,255,0.13);
-      border-radius: 10px;
-      color: #999;
-      font-size: 13px;
-      cursor: pointer;
-      padding: 7px 13px;
-      transition: color .15s, border-color .15s, background .15s;
-      font-family: inherit;
-      z-index: 10;
-    }
-    .menu-back:hover { color: #eee; border-color: rgba(255,255,255,0.28); background: #2e2e2e; }
-
-    /* ── Nombre de congregación con color ── */
+    /* ── Título de congregación ── */
     #menu-titulo {
-      background: linear-gradient(135deg, #e8e8e8 0%, #a0b8f0 60%, #8fa8e0 100%);
       -webkit-background-clip: text;
       -webkit-text-fill-color: transparent;
       background-clip: text;
+      background-image: linear-gradient(135deg, #f0f0f0 0%, #a0b8f0 100%);
+      font-size: 30px;
       font-weight: 700;
       letter-spacing: -0.5px;
+      white-space: nowrap;
+      line-height: 1.15;
     }
 
     /* ── Botón admin ── */
@@ -177,7 +162,7 @@
   <div id="view-menu" class="view" style="display:none">
     <div class="menu-wrap">
       <div class="logo">
-        <div class="cs-logo-title" id="menu-titulo" style="font-size:34px;">—</div>
+        <div id="menu-titulo">—</div>
         <div class="cs-logo-sub">Seleccioná un módulo</div>
       </div>
 
@@ -208,11 +193,9 @@
       </a>
 
       <div class="cs-footer" id="menu-footer"></div>
+      <a class="cs-back-btn" href="#" onclick="volverACongres();return false;">‹ Congregaciones</a>
     </div>
   </div>
-
-  <!-- ── Botón volver a congregaciones (fijo, fuera de views) ── -->
-  <button id="btn-menu-back" class="menu-back" onclick="volverACongres()" style="display:none">‹ Congregaciones</button>
 
   <!-- ── Botón Admin (fijo) ── -->
   <a href="admin.html" class="btn-admin" title="Admin">
@@ -236,12 +219,8 @@
       { bg: 'rgba(216,90,48,0.18)',   border: 'rgba(216,90,48,0.35)',   color: '#D85A30' },
     ];
 
-    const STOP = new Set(['congregacion','congregación','de','del','la','el','las','los']);
     function iniciales(nombre) {
-      const words = nombre.normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().split(/\s+/);
-      const meaningful = words.filter(w => !STOP.has(w));
-      const src = meaningful.length ? meaningful : words;
-      return src[0].charAt(0).toUpperCase();
+      return nombre.trim().split(/\s+/).slice(0,2).map(w => w.charAt(0).toUpperCase()).join('');
     }
 
     function hexToRgba(hex, a) {
@@ -260,26 +239,27 @@
       const el = document.getElementById(id);
       el.style.animation = 'none';
       el.style.display = 'flex';
-      el.offsetHeight; // forzar reflow para reiniciar animación
+      el.offsetHeight;
       el.style.animation = '';
     }
 
-    const btnAdmin    = document.querySelector('.btn-admin');
-    const btnBack     = document.getElementById('btn-menu-back');
+    const btnAdmin = document.querySelector('.btn-admin');
+    const titulo   = document.getElementById('menu-titulo');
 
-    function mostrarMenu(nombre) {
-      document.getElementById('menu-titulo').textContent = nombre;
+    function mostrarMenu(nombre, color) {
+      titulo.textContent = nombre;
+      const col = color || '#a0b8f0';
+      titulo.style.backgroundImage = `linear-gradient(135deg, #f0f0f0 0%, ${col} 100%)`;
       document.getElementById('menu-footer').textContent = nombre + ' · App interna';
       btnAdmin.classList.add('hidden');
-      btnBack.style.display = '';
       showView('view-menu');
     }
 
     window.volverACongres = function() {
       sessionStorage.removeItem('congreId');
       sessionStorage.removeItem('congreNombre');
+      sessionStorage.removeItem('congreColor');
       btnAdmin.classList.remove('hidden');
-      btnBack.style.display = 'none';
       showView('view-congres');
     };
 
@@ -315,7 +295,8 @@
           card.addEventListener('click', () => {
             sessionStorage.setItem('congreId',     id);
             sessionStorage.setItem('congreNombre', nombre);
-            mostrarMenu(nombre);
+            sessionStorage.setItem('congreColor',  c.color);
+            mostrarMenu(nombre, c.color);
           });
           list.appendChild(card);
         });
@@ -328,8 +309,9 @@
     // Si ya hay sesión activa → ir directo al menú
     const savedId     = sessionStorage.getItem('congreId');
     const savedNombre = sessionStorage.getItem('congreNombre');
+    const savedColor  = sessionStorage.getItem('congreColor');
     if (savedId && savedNombre) {
-      mostrarMenu(savedNombre);
+      mostrarMenu(savedNombre, savedColor);
     }
 
     cargarCongres();
