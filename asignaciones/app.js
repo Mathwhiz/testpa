@@ -861,23 +861,12 @@ async function guardarAutomatico() {
   }
 }
 
-/* ─── JSONP helper (para Apps Script) ─── */
-function apiFetch(params) {
-  return new Promise((resolve, reject) => {
-    const cbName = '_cb_' + Math.random().toString(36).slice(2);
-    const qs = Object.entries(params).map(([k,v]) => `${k}=${encodeURIComponent(v)}`).join('&');
-    const script = document.createElement('script');
-    const timeout = setTimeout(() => { cleanup(); reject(new Error('Timeout')); }, 15000);
-    function cleanup() {
-      clearTimeout(timeout);
-      delete window[cbName];
-      if (script.parentNode) script.parentNode.removeChild(script);
-    }
-    window[cbName] = data => { cleanup(); resolve(data); };
-    script.src = `${SCRIPT_URL}?${qs}&callback=${cbName}`;
-    script.onerror = () => { cleanup(); reject(new Error('Error de red')); };
-    document.head.appendChild(script);
-  });
+/* ─── Fetch helper (para Apps Script) ─── */
+async function apiFetch(params) {
+  const qs = Object.entries(params).map(([k,v]) => `${k}=${encodeURIComponent(v)}`).join('&');
+  const res = await fetch(`${SCRIPT_URL}?${qs}`, { redirect: 'follow' });
+  if (!res.ok) throw new Error(`HTTP ${res.status}`);
+  return res.json();
 }
 
 async function guardarEnPlanilla() {
