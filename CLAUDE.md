@@ -5,7 +5,8 @@ Fork del repo original (`mathwhiz.github.io/TerritoryAppJW`) donde se migró el 
 de Google Apps Script + Google Sheets a **Firebase Firestore**, y se agregó soporte
 **multi-congregación**.
 
-La migración está **completa**. No hay más llamadas a Apps Script.
+La migración está **completa**. No hay más llamadas a Apps Script (salvo el botón
+opcional "Guardar también en planilla" del módulo de asignaciones).
 
 ---
 
@@ -13,7 +14,7 @@ La migración está **completa**. No hay más llamadas a Apps Script.
 
 ```
 congregaciones/{congreId}/
-  ├── (doc: nombre, pinEncargado, creadoEn)
+  ├── (doc: nombre, pinEncargado, color, creadoEn, scriptUrl?, sheetsUrl?)
   ├── grupos/{grupoId}         → id, label, color, pin
   ├── territorios/{terrId}     → id, nombre, tipo, grupoId, punto, poligonos
   ├── historial/{entryId}      → conductor, fechaInicio, fechaFin, territorioId
@@ -23,6 +24,13 @@ congregaciones/{congreId}/
 
 config/superadmin              → pin  ← PIN del panel de admin
 ```
+
+### Campos opcionales del doc de congregación
+| Campo | Descripción |
+|-------|-------------|
+| `color` | Hex del color de la card en index.html (ej: `"#1D9E75"`). Si no existe, se deriva por hash del ID. |
+| `scriptUrl` | URL del Apps Script de la hoja de asignaciones. Activa el botón "Guardar también en planilla". |
+| `sheetsUrl` | URL del Google Sheets. Activa el botón "Ver planilla" en el panel del encargado. |
 
 Flujo de navegación:
 1. `index.html` — elige congregación **y** módulo (dos vistas en la misma página, sin navegar)
@@ -61,10 +69,11 @@ El ID de congregación es un slug legible (ej: `"sur"`, `"norte"`), elegido al c
     ├── kml_to_json.py
     ├── migrate_sheets.py
     ├── upload_territorios.py
-    ├── sync_historial.py   # Sync incremental de historial desde Excel → Firestore
+    ├── sync_historial.py       # Sync incremental de historial desde Excel → Firestore
+    ├── codigodeappscript       # Apps Script de la hoja de asignaciones (Congregación Sur)
     ├── territorios_sur.json
     └── congregacionsur.kml
-    # Registro de Asignación de Territorio.xlsx → fuente de datos (no commitear)
+    # *.xlsx → fuente de datos (no commitear)
 ```
 
 ---
@@ -76,13 +85,16 @@ Acceso: URL directa → PIN (desde `config/superadmin → { pin }` en Firestore)
 **Funcionalidades:**
 - Listar congregaciones existentes
 - **Crear congregación** (wizard 3 pasos):
-  1. Nombre + ID slug (auto-sugerido, ej: `"norte"`) + PIN encargado
+  1. Nombre + ID slug (auto-sugerido) + PIN encargado + **color** (random de paleta, editable con swatches)
   2. Configurar grupos: label, color, PIN — se pueden agregar/quitar grupos
   3. Subir KML de Google My Maps (opcional) → parsea polígonos client-side
-- **Editar** congregación (nombre, PIN, grupos)
+- **Editar** congregación (nombre, PIN, color, grupos)
 - **Eliminar** congregación (borra todas las subcolecciones + doc)
 - **Asignar territorios a grupos** (📍): lista de territorios con botones de color,
   filtros por grupo, barra de guardado con batch update
+
+**Paleta de colores** (`PALETA_COLORES` en `admin.js`):
+`#378ADD`, `#97C459`, `#7F77DD`, `#EF9F27`, `#1D9E75`, `#D85A30`
 
 **KML parser** (`parseKML` en `admin.js`):
 - Soporta nombres `"1"`, `"92a"`, `"Territorio 1"`, `"Territorio 1a"`
@@ -161,9 +173,21 @@ Sub-polígonos usan sufijos letra (92a, 92b) que mapean al mismo territorio base
 
 ## Módulo de Asignaciones
 
-### Roles de reunión
-`LECTOR`, `SONIDO`, `PLATAFORMA`, `MICROFONISTAS`,
+### Roles de reunión (tabla semanal)
+`LECTOR`, `SONIDO_1`, `SONIDO_2`, `PLATAFORMA`, `MICROFONISTAS_1`, `MICROFONISTAS_2`,
 `ACOMODADOR_AUDITORIO`, `ACOMODADOR_ENTRADA`, `PRESIDENTE`, `REVISTAS`, `PUBLICACIONES`
+
+### Roles en lista de publicadores (Firestore)
+Los publicadores se guardan con roles sin número: `SONIDO`, `MICROFONISTAS` (sin `_1`/`_2`).
+El `ROL_LISTA_MAP` los mapea al cargar:
+```js
+const ROL_LISTA_MAP = {
+  SONIDO:          'SONIDO_1',
+  SONIDO_2:        'SONIDO_1',   // ambos slots usan la misma lista
+  MICROFONISTAS:   'MICROFONISTAS_1',
+  MICROFONISTAS_2: 'MICROFONISTAS_1',
+};
+```
 
 ### Roles extra (solo en lista de publicadores)
 `CONDUCTOR_GRUPO_1..4`, `CONDUCTOR_CONGREGACION`
@@ -173,12 +197,32 @@ Sub-polígonos usan sufijos letra (92a, 92b) que mapean al mismo territorio base
 - Filtro por rol: `<select id="gestionar-rol">` vacío por defecto, combina con buscador por nombre
 
 ### Generar automático
-- Inputs `#auto-desde` / `#auto-hasta` **funcionales**: se pre-llenan con hoy/+3 meses al entrar a la vista y el botón ⚡ Generar los respeta
-- Checkboxes "Tener en cuenta historial previo" y "Reemplazar semanas existentes": **visibles pero sin lógica** — pendiente implementar
+Todos los inputs y checkboxes son funcionales:
+
+- **`#auto-desde` / `#auto-hasta`**: rango de generación. Se pre-llenan al entrar con la semana siguiente a la última fecha guardada en Firestore → +3 meses.
+- **Chips rápidos**: "Desde última guardada" y "Desde hoy" → dispatcha `change` event para actualizar el picker custom de `upgradeInputs`.
+- **"Tener en cuenta historial previo"** (`#auto-usar-historial`): cuando activo, busca el último asignado por rol en el historial y arranca la rotación desde el siguiente. Sin él, usa `filasOrd.length % lista.length`.
+- **"Reemplazar semanas existentes"** (`#auto-reemplazar`): cuando activo, incluye en la generación fechas que ya tienen datos en el rango (no las saltea).
+
+**Algoritmo de generación:**
+- Round-robin por rol con `indices[r]`
+- `SONIDO_2` y `MICROFONISTAS_2` se inicializan con offset +1 respecto a `_1` para no coincidir en la misma reunión
+- `PRESIDENTE` se omite en Miércoles (igual que en el editor manual)
+- Por reunión: `Set enEstaReunion` detecta conflictos — si una persona ya tiene un rol en esa reunión, se salta al siguiente disponible en la lista
+
+### Integración con Google Sheets (opcional por congregación)
+Si `congregaciones/{congreId}.scriptUrl` está en Firestore:
+- Aparece botón **"Guardar también en planilla"** en el generador automático
+- Envía cada reunión de a una (fetch `no-cors`) para evitar el límite de URL de Apps Script (~2KB)
+- La respuesta es opaca (`no-cors`) — no se puede confirmar éxito, se asume OK
+
+Si `congregaciones/{congreId}.sheetsUrl` está en Firestore:
+- Aparece botón **"Ver planilla"** en el panel del encargado → abre la URL en nueva pestaña
+
+El Apps Script de referencia está en `tools/codigodeappscript` (SHEET_ID de Congregación Sur).
 
 ### Datos relevantes
 - PIN encargado: viene de `congregaciones/{congreId}.pinEncargado`
-- Telefónica fija: ID `844 0225 6636` / Contraseña `479104`
 
 ---
 
@@ -194,7 +238,7 @@ Sub-polígonos usan sufijos letra (92a, 92b) que mapean al mismo territorio base
 | `uiTerritorioPicker({ territoriosData, allData, grupo, configData, label, color })` | Selector de territorio |
 | `uiLoading.show(text)` / `uiLoading.hide()` | Overlay de carga |
 | `uiToast(msg, type, duration)` | Toast. `type`: `success`/`error` |
-| `upgradeInputs(container)` | Reemplaza inputs date/time/select por pickers custom |
+| `upgradeInputs(container)` | Reemplaza inputs date/time/select por pickers custom. Se ejecuta en DOMContentLoaded y en MutationObserver. **Al setear `.value` programáticamente hay que disparar `dispatchEvent(new Event('change', { bubbles: true }))` para que el picker actualice su display.** |
 
 **Nunca usar `confirm()`, `alert()`, `prompt()` nativos.**
 
@@ -230,9 +274,10 @@ Formato de almacenamiento: `YYYY-MM-DD`. Display: `DD/MM/YY`.
 
 ## Lo que NO hacer
 
-- No crear llamadas a Google Apps Script (`SCRIPT_URL`) — ya no existe
+- No eliminar la integración con Apps Script del módulo de asignaciones — es opcional pero funcional
 - No hardcodear polígonos de territorios en HTML/JS
 - No usar `toISOString()` para fechas (bug UTC-3)
-- No commitear `tools/serviceAccountKey.json`
+- No commitear `tools/serviceAccountKey.json` ni archivos `.xlsx`
 - No fetchear el KML de Google My Maps en runtime (CORS)
 - No usar `confirm()`, `alert()`, `prompt()` nativos
+- No setear `.value` en inputs upgradeados sin disparar el evento `change`
