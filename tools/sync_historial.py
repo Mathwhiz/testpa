@@ -50,13 +50,33 @@ def fmt_fecha(val):
     s = str(val).strip()
     if s in ("—", "-", "", "None"):
         return None
+    # Formato D/M/YYYY o D/M/YY
     m = re.match(r"(\d{1,2})/(\d{1,2})/(\d{2,4})$", s)
     if m:
         d, mo, y = m.groups()
         if len(y) == 2:
             y = "20" + y
         return f"{y}-{mo.zfill(2)}-{d.zfill(2)}"
+    # Formato "D - M - YY" o "D-M-YY" (texto en Excel Grupo 4)
+    m = re.match(r"(\d{1,2})\s*-\s*(\d{1,2})\s*-\s*(\d{2,4})$", s)
+    if m:
+        d, mo, y = m.groups()
+        if len(y) == 2:
+            y = "20" + y
+        return f"{y}-{mo.zfill(2)}-{d.zfill(2)}"
     return None
+
+def is_date_like(val):
+    """Detecta si un valor es fecha (datetime o string con formato de fecha)."""
+    if isinstance(val, datetime):
+        return True
+    if isinstance(val, str):
+        s = val.strip()
+        return bool(
+            re.match(r"\d{1,2}/\d{1,2}/\d{2,4}$", s) or
+            re.match(r"\d{1,2}\s*-\s*\d{1,2}\s*-\s*\d{2,4}$", s)
+        )
+    return False
 
 def fmt_nombre(val):
     if val is None:
@@ -102,7 +122,7 @@ def parse_grupo(ws):
             if v0 is None and v1 is None:
                 continue
 
-            if isinstance(v0, datetime):
+            if is_date_like(v0):
                 # Fila de fechas
                 inicio = fmt_fecha(v0)
                 fin    = fmt_fecha(v1)
