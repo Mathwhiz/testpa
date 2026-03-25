@@ -435,23 +435,54 @@ async function goToEditar() {
   await cargarEditar();
 }
 
+function toISOLocal(d) {
+  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+}
+
+function getDesdeUltimaGuardada() {
+  if (todasLasFilas.length === 0) return new Date();
+  // Buscar la fecha más reciente en el historial
+  let maxNum = 0, maxFecha = null;
+  todasLasFilas.forEach(r => {
+    const n = fechaToNum(r.fecha);
+    if (n > maxNum) { maxNum = n; maxFecha = parseFecha(r.fecha); }
+  });
+  if (!maxFecha) return new Date();
+  // Lunes de la semana SIGUIENTE a esa fecha
+  const dow = maxFecha.getDay();
+  const lunes = new Date(maxFecha);
+  lunes.setDate(maxFecha.getDate() - (dow === 0 ? 6 : dow - 1) + 7);
+  lunes.setHours(0,0,0,0);
+  return lunes;
+}
+
+function setAutoDesde(tipo) {
+  const el = document.getElementById('auto-desde');
+  if (!el) return;
+  if (tipo === 'hoy') {
+    const hoy = new Date(); hoy.setHours(0,0,0,0);
+    el.value = toISOLocal(hoy);
+  } else if (tipo === 'ultima') {
+    el.value = toISOLocal(getDesdeUltimaGuardada());
+  }
+}
+
 async function goToAutomatico() {
   showView('view-automatico');
   hide('auto-loading'); hide('auto-preview'); hide('auto-guardar-wrap');
   setText('auto-status', '');
   autoResult = [];
-  // Pre-llenar fechas con el rango por defecto (hoy → +3 meses)
-  const desdeEl = document.getElementById('auto-desde');
-  const hastaEl = document.getElementById('auto-hasta');
-  const hoyD = new Date(); hoyD.setHours(0,0,0,0);
-  const finD  = new Date(hoyD); finD.setMonth(finD.getMonth() + 3);
-  const toISO = d => `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
-  if (desdeEl && !desdeEl.value) desdeEl.value = toISO(hoyD);
-  if (hastaEl && !hastaEl.value) hastaEl.value = toISO(finD);
   if (Object.keys(hermanos).length === 0)
     try { hermanos = await getHermanos(); } catch(e) {}
   if (todasLasFilas.length === 0)
     try { todasLasFilas = await getProgramacion(); } catch(e) {}
+  // Pre-llenar: desde semana siguiente a la última guardada, hasta +3 meses
+  const desdeEl = document.getElementById('auto-desde');
+  const hastaEl = document.getElementById('auto-hasta');
+  const desdeD = getDesdeUltimaGuardada();
+  const hastaD = new Date(desdeD); hastaD.setMonth(desdeD.getMonth() + 3);
+  if (desdeEl) desdeEl.value = toISOLocal(desdeD);
+  if (hastaEl) hastaEl.value = toISOLocal(hastaD);
 }
 
 async function goToGenerarImagen() {
@@ -812,13 +843,25 @@ function generarAutomatico() {
 
   autoResult = fechasAGenerar.map(({ fecha, dia }) => {
     const entry = { fecha, dia };
+    const enEstaReunion = new Set(); // evitar duplicados dentro de la misma reunión
     ROLES.forEach(r => {
       if (r === 'PRESIDENTE' && dia === 'Miércoles') { entry[r] = ''; return; }
       const listaKey = ROL_LISTA_MAP[r] || r;
       const lista = hermanos[listaKey] || [];
       if (lista.length === 0) { entry[r] = ''; return; }
-      entry[r] = lista[indices[r] % lista.length];
-      indices[r]++;
+      // Buscar el próximo disponible que no esté ya en esta reunión
+      let persona = '';
+      for (let i = 0; i < lista.length; i++) {
+        const candidato = lista[(indices[r] + i) % lista.length];
+        if (!enEstaReunion.has(norm(candidato))) {
+          persona = candidato;
+          indices[r] += i + 1;
+          enEstaReunion.add(norm(candidato));
+          break;
+        }
+      }
+      if (!persona) indices[r]++; // lista muy corta, dejar vacío y avanzar
+      entry[r] = persona;
     });
     return entry;
   });
@@ -864,9 +907,9 @@ async function guardarAutomatico() {
 /* ─── Fetch helper (para Apps Script) ─── */
 async function apiFetch(params) {
   const qs = Object.entries(params).map(([k,v]) => `${k}=${encodeURIComponent(v)}`).join('&');
-  const res = await fetch(`${SCRIPT_URL}?${qs}`, { redirect: 'follow' });
-  if (!res.ok) throw new Error(`HTTP ${res.status}`);
-  return res.json();
+  // no-cors: evita errores de CORS; la respuesta es opaca pero la request llega al servidor
+  await fetch(`${SCRIPT_URL}?${qs}`, { mode: 'no-cors' });
+  return { ok: true };
 }
 
 async function guardarEnPlanilla() {
@@ -877,9 +920,8 @@ async function guardarEnPlanilla() {
   if (btn) btn.disabled = true;
   if (status){status.style.color='#888';status.textContent='Guardando en planilla...';}
   try {
-    const res = await apiFetch({ action: 'saveProgramacion', data: JSON.stringify(autoResult) });
-    if (res.error) throw new Error(res.error);
-    if (status){status.style.color='#5DCAA5';status.textContent=`✓ ${autoResult.length} reuniones guardadas en planilla`;}
+    await apiFetch({ action: 'saveProgramacion', data: JSON.stringify(autoResult) });
+    if (status){status.style.color='#5DCAA5';status.textContent=`✓ Enviado a la planilla (${autoResult.length} reuniones)`;}
   } catch(err) {
     if (status){status.style.color='#F09595';status.textContent='Error planilla: '+err.message;}
   }
@@ -1076,6 +1118,7 @@ window.cambiarSemanaEdit = cambiarSemanaEdit;
 window.guardarEdicion = guardarEdicion;
 window.goToAutomatico = goToAutomatico;
 window.generarAutomatico = generarAutomatico;
+window.setAutoDesde = setAutoDesde;
 window.guardarAutomatico = guardarAutomatico;
 window.guardarEnPlanilla = guardarEnPlanilla;
 window.goToGenerarImagen = goToGenerarImagen;
