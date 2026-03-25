@@ -438,8 +438,8 @@
 .cs-nav-card-terr:hover  { border-color: #3a6b3a; background: #242826; }
 .cs-nav-card-asign:hover { border-color: #2e4070; background: #23252e; }
 
-.cs-nav-title { font-size: 17px; font-weight: 600; color: #e8e8e8; margin-bottom: 2px; }
-.cs-nav-sub   { font-size: 13px; color: #666; }
+.cs-nav-title { font-size: 21px; font-weight: 600; color: #e8e8e8; margin-bottom: 3px; }
+.cs-nav-sub   { font-size: 14px; color: #666; }
 
 .cs-logo-title {
   font-size: 34px; font-weight: 700;
