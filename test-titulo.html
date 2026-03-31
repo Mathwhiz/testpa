@@ -1,0 +1,496 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Test Título Congregación</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: system-ui, sans-serif;
+      background: #1a1c1f;
+      color: #eee;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 3rem 1rem 4rem;
+      gap: 64px;
+      background-image:
+        radial-gradient(ellipse at 18% 22%, rgba(55,138,221,0.13) 0%, transparent 52%),
+        radial-gradient(ellipse at 82% 78%, rgba(127,119,221,0.11) 0%, transparent 52%);
+    }
+
+    /* ── Demo wrapper ── */
+    .demo {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 20px;
+      width: 100%;
+      max-width: 340px;
+    }
+    .demo-label {
+      font-size: 10px; font-weight: 700; letter-spacing: 0.12em;
+      text-transform: uppercase; color: #333;
+      align-self: flex-start;
+    }
+    .cs-logo-sub { font-size: 14px; color: #555; text-align: center; }
+
+    /* ── Módulos (igual en los 3) ── */
+    .mod-cards { display: flex; flex-direction: column; gap: 10px; width: 100%; }
+    .mod-card {
+      background: #232628; border: 1px solid #2e3033; border-radius: 18px;
+      padding: 1rem 1.25rem; display: flex; align-items: center; gap: 14px;
+      transition: border-color 0.18s, background 0.18s, transform 0.1s;
+      cursor: pointer;
+    }
+    .mod-card:hover { transform: translateY(-1px); }
+    .mod-icon {
+      width: 44px; height: 44px; border-radius: 13px;
+      display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+    }
+    .mod-title { font-size: 16px; font-weight: 600; color: #e8e8e8; margin-bottom: 2px; }
+    .mod-sub   { font-size: 13px; color: #666; }
+
+    /* ══════════════════════════════════════
+       VARIANTE A — Nombre + línea de color centrada
+       La línea es el acento, no gradiente de texto
+    ══════════════════════════════════════ */
+    .va-wrap { display: flex; flex-direction: column; align-items: center; gap: 8px; }
+    .va-nombre {
+      font-size: 28px; font-weight: 700; color: #e8e8e8;
+      letter-spacing: -0.5px; text-align: center; line-height: 1.2;
+    }
+    .va-line {
+      width: 48px; height: 3px; border-radius: 2px;
+      background: linear-gradient(90deg, transparent, #378ADD 30%, #378ADD 70%, transparent);
+    }
+
+    /* ══════════════════════════════════════
+       VARIANTE B — Card con borde neon animado
+       El borde recorre el perímetro como un rayo
+    ══════════════════════════════════════ */
+    .vb-wrapper {
+      position: relative;
+      width: 100%;
+      border-radius: 14px;
+      padding: 3px;
+      overflow: hidden;
+      box-shadow: 0 0 32px rgba(0,212,255,0.15), 0 0 12px rgba(55,138,221,0.18);
+    }
+    /* El rayo que gira */
+    .vb-wrapper::before {
+      content: '';
+      position: absolute;
+      aspect-ratio: 1;
+      width: 220%;
+      top: 50%; left: 50%;
+      transform: translate(-50%, -50%) rotate(0deg);
+      background: conic-gradient(
+        from 0deg,
+        transparent 0%,
+        transparent 58%,
+        rgba(0,212,255,0.2) 65%,
+        #00d4ff 72%,
+        #378ADD 80%,
+        rgba(55,138,221,0.25) 87%,
+        transparent 100%
+      );
+      animation: vb-spin 2.8s linear infinite;
+      z-index: 0;
+    }
+    @keyframes vb-spin {
+      to { transform: translate(-50%, -50%) rotate(360deg); }
+    }
+    .vb-inner {
+      position: relative;
+      background: #232628;
+      border-radius: 12px;
+      padding: 14px 18px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      z-index: 1;
+    }
+    .vb-dot {
+      width: 36px; height: 36px; border-radius: 10px; flex-shrink: 0;
+      background: rgba(55,138,221,0.18);
+      border: 1px solid rgba(55,138,221,0.3);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 13px; font-weight: 800; color: #378ADD;
+    }
+    .vb-nombre { font-size: 18px; font-weight: 700; color: #e8e8e8; letter-spacing: -0.3px; }
+    .vb-sub    { font-size: 12px; color: #555; margin-top: 1px; }
+
+    /* ══════════════════════════════════════
+       VARIANTE C — Iniciales · Nombre (inline)
+       Minimalista horizontal, initials en color
+    ══════════════════════════════════════ */
+    .vc-wrap { display: flex; flex-direction: column; align-items: center; gap: 6px; }
+    .vc-row  { display: flex; align-items: center; gap: 10px; }
+    .vc-initials {
+      font-size: 15px; font-weight: 800; color: #378ADD;
+      letter-spacing: -0.5px;
+    }
+    .vc-sep {
+      width: 1px; height: 20px; background: #333;
+    }
+    .vc-nombre {
+      font-size: 22px; font-weight: 700; color: #e8e8e8;
+      letter-spacing: -0.4px;
+    }
+    .vc-line {
+      width: 100%; height: 1px;
+      background: linear-gradient(90deg, transparent, #2e3033 20%, #2e3033 80%, transparent);
+    }
+  </style>
+</head>
+<body>
+
+  <!-- ════ VARIANTE A — Nombre + línea centrada ════ -->
+  <div class="demo">
+    <div class="demo-label">Variante A</div>
+
+    <div class="va-wrap">
+      <div class="va-nombre">Congregación Sur</div>
+      <div class="va-line"></div>
+    </div>
+    <div class="cs-logo-sub">Seleccioná un módulo</div>
+
+    <div class="mod-cards">
+      <div class="mod-card" style="--hover-border:#3a6b3a;">
+        <div class="mod-icon" style="background:#1a3a1a;">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-1.447-.894L15 9m0 8V9m0 0L9 7" stroke="#5DB85D" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </div>
+        <div><div class="mod-title">Territorios</div><div class="mod-sub">Planificar y registrar salidas</div></div>
+      </div>
+      <div class="mod-card">
+        <div class="mod-icon" style="background:#1a2340;">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2M9 11a4 4 0 100-8 4 4 0 000 8z" stroke="#5B8DDE" stroke-width="1.8" stroke-linecap="round"/></svg>
+        </div>
+        <div><div class="mod-title">Asignaciones</div><div class="mod-sub">Acomodadores, sonido y más</div></div>
+      </div>
+      <div class="mod-card">
+        <div class="mod-icon" style="background:#2a1e0a;">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M2 3h6a4 4 0 014 4v14a3 3 0 00-3-3H2z" stroke="#EF9F27" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/><path d="M22 3h-6a4 4 0 00-4 4v14a3 3 0 013-3h7z" stroke="#EF9F27" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </div>
+        <div><div class="mod-title">Vida y Ministerio</div><div class="mod-sub">Programa de la reunión semanal</div></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ════ VARIANTE B — Card con borde izquierdo ════ -->
+  <div class="demo">
+    <div class="demo-label">Variante B</div>
+
+    <div class="vb-wrapper">
+      <div class="vb-inner">
+        <div class="vb-dot">CS</div>
+        <div>
+          <div class="vb-nombre">Congregación Sur</div>
+          <div class="vb-sub">Sistema interno</div>
+        </div>
+      </div>
+    </div>
+    <div class="cs-logo-sub">Seleccioná un módulo</div>
+
+    <div class="mod-cards">
+      <div class="mod-card">
+        <div class="mod-icon" style="background:#1a3a1a;">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-1.447-.894L15 9m0 8V9m0 0L9 7" stroke="#5DB85D" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </div>
+        <div><div class="mod-title">Territorios</div><div class="mod-sub">Planificar y registrar salidas</div></div>
+      </div>
+      <div class="mod-card">
+        <div class="mod-icon" style="background:#1a2340;">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2M9 11a4 4 0 100-8 4 4 0 000 8z" stroke="#5B8DDE" stroke-width="1.8" stroke-linecap="round"/></svg>
+        </div>
+        <div><div class="mod-title">Asignaciones</div><div class="mod-sub">Acomodadores, sonido y más</div></div>
+      </div>
+      <div class="mod-card">
+        <div class="mod-icon" style="background:#2a1e0a;">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M2 3h6a4 4 0 014 4v14a3 3 0 00-3-3H2z" stroke="#EF9F27" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/><path d="M22 3h-6a4 4 0 00-4 4v14a3 3 0 013-3h7z" stroke="#EF9F27" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </div>
+        <div><div class="mod-title">Vida y Ministerio</div><div class="mod-sub">Programa de la reunión semanal</div></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ════ VARIANTE C — CS · Congregación Sur ════ -->
+  <div class="demo">
+    <div class="demo-label">Variante C</div>
+
+    <div class="vc-wrap">
+      <div class="vc-row">
+        <div class="vc-initials">CS</div>
+        <div class="vc-sep"></div>
+        <div class="vc-nombre">Congregación Sur</div>
+      </div>
+      <div class="vc-line"></div>
+    </div>
+    <div class="cs-logo-sub">Seleccioná un módulo</div>
+
+    <div class="mod-cards">
+      <div class="mod-card">
+        <div class="mod-icon" style="background:#1a3a1a;">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-1.447-.894L15 9m0 8V9m0 0L9 7" stroke="#5DB85D" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </div>
+        <div><div class="mod-title">Territorios</div><div class="mod-sub">Planificar y registrar salidas</div></div>
+      </div>
+      <div class="mod-card">
+        <div class="mod-icon" style="background:#1a2340;">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2M9 11a4 4 0 100-8 4 4 0 000 8z" stroke="#5B8DDE" stroke-width="1.8" stroke-linecap="round"/></svg>
+        </div>
+        <div><div class="mod-title">Asignaciones</div><div class="mod-sub">Acomodadores, sonido y más</div></div>
+      </div>
+      <div class="mod-card">
+        <div class="mod-icon" style="background:#2a1e0a;">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M2 3h6a4 4 0 014 4v14a3 3 0 00-3-3H2z" stroke="#EF9F27" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/><path d="M22 3h-6a4 4 0 00-4 4v14a3 3 0 013-3h7z" stroke="#EF9F27" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </div>
+        <div><div class="mod-title">Vida y Ministerio</div><div class="mod-sub">Programa de la reunión semanal</div></div>
+      </div>
+    </div>
+  </div>
+
+
+  <!-- ════ ÍCONOS GIRATORIOS — VARIANTES ════ -->
+  <div class="demo">
+    <div class="demo-label">Variantes de íconos giratorios</div>
+
+    <style>
+      /* ── Layout filas de variante ── */
+      .var-row {
+        width: 100%;
+        display: flex; flex-direction: column; gap: 10px;
+      }
+      .var-name {
+        font-size: 10px; font-weight: 700; letter-spacing: 0.1em;
+        text-transform: uppercase; color: #444;
+      }
+      .var-icons {
+        display: flex; gap: 14px; align-items: center;
+      }
+      .var-sep {
+        width: 100%; height: 1px;
+        background: linear-gradient(90deg, transparent, #2e3033 30%, #2e3033 70%, transparent);
+        margin: 4px 0;
+      }
+
+      /* ── Base del ícono giratorio ── */
+      .spin-icon {
+        width: 52px; height: 52px; border-radius: 14px;
+        position: relative; overflow: hidden;
+        display: flex; align-items: center; justify-content: center;
+        flex-shrink: 0;
+      }
+      .spin-icon svg { position: relative; z-index: 1; }
+      .spin-icon::before {
+        content: '';
+        position: absolute; aspect-ratio: 1; width: 220%;
+        top: 50%; left: 50%;
+        z-index: 0;
+      }
+      /* colores por módulo */
+      .si-terr { --c: #97C459; --cd: rgba(151,196,89,0.25); background: rgba(151,196,89,0.13); border: 1px solid rgba(151,196,89,0.22); }
+      .si-asig { --c: #378ADD; --cd: rgba(55,138,221,0.25);  background: rgba(55,138,221,0.13);  border: 1px solid rgba(55,138,221,0.22); }
+      .si-vm   { --c: #EF9F27; --cd: rgba(239,159,39,0.25);  background: rgba(239,159,39,0.13);  border: 1px solid rgba(239,159,39,0.22); }
+
+      @keyframes icon-spin { to { transform: translate(-50%,-50%) rotate(360deg); } }
+      @keyframes icon-spin-rev { to { transform: translate(-50%,-50%) rotate(-360deg); } }
+
+      /* ──────────────────────────────────────────
+         A — Cometa puro (sin blanco)
+         Fade-in suave → pico de color → cola
+      ────────────────────────────────────────── */
+      .sa::before {
+        background: conic-gradient(from 0deg,
+          transparent 0%, transparent 52%,
+          var(--cd) 60%, var(--c) 70%, var(--cd) 80%, transparent 92%, transparent 100%);
+        animation: icon-spin 5s linear infinite;
+        transform: translate(-50%,-50%) rotate(0deg);
+      }
+
+      /* ──────────────────────────────────────────
+         B — Doble cometa (sin blanco)
+         Dos manchas de color a 180°
+      ────────────────────────────────────────── */
+      .sb::before {
+        background: conic-gradient(from 0deg,
+          transparent 0%,
+          transparent 16%, var(--cd) 22%, var(--c) 28%, var(--cd) 34%, transparent 40%,
+          transparent 66%, var(--cd) 72%, var(--c) 78%, var(--cd) 84%, transparent 90%,
+          transparent 100%);
+        animation: icon-spin 3s linear infinite;
+        transform: translate(-50%,-50%) rotate(0deg);
+      }
+
+      /* ──────────────────────────────────────────
+         C — Arco suave
+         Cuarto de círculo que se desvanece
+      ────────────────────────────────────────── */
+      .sc::before {
+        background: conic-gradient(from 0deg,
+          transparent 0%, var(--cd) 8%, var(--c) 22%, var(--c) 30%,
+          var(--cd) 44%, transparent 58%, transparent 100%);
+        animation: icon-spin 4s linear infinite;
+        transform: translate(-50%,-50%) rotate(0deg);
+      }
+
+      /* ──────────────────────────────────────────
+         D — Línea de precisión (sin blanco)
+         Trazo muy fino y veloz
+      ────────────────────────────────────────── */
+      .sd::before {
+        background: conic-gradient(from 0deg,
+          transparent 0%, transparent 88%,
+          var(--cd) 91%, var(--c) 94%, var(--cd) 97%, transparent 100%);
+        animation: icon-spin 1.8s linear infinite;
+        transform: translate(-50%,-50%) rotate(0deg);
+      }
+
+      /* ──────────────────────────────────────────
+         E — Arco grueso lento
+         Un bloque sólido de color girando despacio,
+         efecto de "rueda de color"
+      ────────────────────────────────────────── */
+      .se::before {
+        background: conic-gradient(from 0deg,
+          var(--c) 0%, var(--c) 6%, var(--cd) 14%, transparent 28%, transparent 100%);
+        animation: icon-spin 7s linear infinite;
+        transform: translate(-50%,-50%) rotate(0deg);
+      }
+
+      /* ──────────────────────────────────────────
+         F — Dual counter-spin
+         Dos capas: ::before y ::after giran en
+         sentidos opuestos — efecto entrelazado
+      ────────────────────────────────────────── */
+      .sf { position: relative; }
+      .sf::before {
+        background: conic-gradient(from 0deg,
+          transparent 0%, transparent 70%,
+          var(--cd) 76%, var(--c) 81%, var(--cd) 86%, transparent 92%, transparent 100%);
+        animation: icon-spin 4s linear infinite;
+        transform: translate(-50%,-50%) rotate(0deg);
+      }
+      .sf::after {
+        content: '';
+        position: absolute; aspect-ratio: 1; width: 220%;
+        top: 50%; left: 50%;
+        z-index: 0;
+        background: conic-gradient(from 0deg,
+          transparent 0%, transparent 70%,
+          var(--cd) 76%, var(--c) 80%, transparent 86%, transparent 100%);
+        animation: icon-spin-rev 6s linear infinite;
+        transform: translate(-50%,-50%) rotate(0deg);
+      }
+    </style>
+
+    <!-- SVGs reutilizables en línea -->
+
+    <!-- A -->
+    <div class="var-row">
+      <div class="var-name">A — Cometa puro</div>
+      <div class="var-icons">
+        <div class="spin-icon sa si-terr">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none"><path d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-1.447-.894L15 9m0 8V9m0 0L9 7" stroke="#97C459" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </div>
+        <div class="spin-icon sa si-asig">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2M9 11a4 4 0 100-8 4 4 0 000 8zM23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75" stroke="#378ADD" stroke-width="1.8" stroke-linecap="round"/></svg>
+        </div>
+        <div class="spin-icon sa si-vm">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none"><path d="M2 3h6a4 4 0 014 4v14a3 3 0 00-3-3H2z" stroke="#EF9F27" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/><path d="M22 3h-6a4 4 0 00-4 4v14a3 3 0 013-3h7z" stroke="#EF9F27" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </div>
+      </div>
+    </div>
+    <div class="var-sep"></div>
+
+    <!-- B -->
+    <div class="var-row">
+      <div class="var-name">B — Doble cometa (3s)</div>
+      <div class="var-icons">
+        <div class="spin-icon sb si-terr">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none"><path d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-1.447-.894L15 9m0 8V9m0 0L9 7" stroke="#97C459" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </div>
+        <div class="spin-icon sb si-asig">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2M9 11a4 4 0 100-8 4 4 0 000 8zM23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75" stroke="#378ADD" stroke-width="1.8" stroke-linecap="round"/></svg>
+        </div>
+        <div class="spin-icon sb si-vm">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none"><path d="M2 3h6a4 4 0 014 4v14a3 3 0 00-3-3H2z" stroke="#EF9F27" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/><path d="M22 3h-6a4 4 0 00-4 4v14a3 3 0 013-3h7z" stroke="#EF9F27" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </div>
+      </div>
+    </div>
+    <div class="var-sep"></div>
+
+    <!-- C -->
+    <div class="var-row">
+      <div class="var-name">C — Arco suave (4s)</div>
+      <div class="var-icons">
+        <div class="spin-icon sc si-terr">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none"><path d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-1.447-.894L15 9m0 8V9m0 0L9 7" stroke="#97C459" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </div>
+        <div class="spin-icon sc si-asig">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2M9 11a4 4 0 100-8 4 4 0 000 8zM23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75" stroke="#378ADD" stroke-width="1.8" stroke-linecap="round"/></svg>
+        </div>
+        <div class="spin-icon sc si-vm">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none"><path d="M2 3h6a4 4 0 014 4v14a3 3 0 00-3-3H2z" stroke="#EF9F27" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/><path d="M22 3h-6a4 4 0 00-4 4v14a3 3 0 013-3h7z" stroke="#EF9F27" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </div>
+      </div>
+    </div>
+    <div class="var-sep"></div>
+
+    <!-- D -->
+    <div class="var-row">
+      <div class="var-name">D — Línea de precisión (1.8s)</div>
+      <div class="var-icons">
+        <div class="spin-icon sd si-terr">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none"><path d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-1.447-.894L15 9m0 8V9m0 0L9 7" stroke="#97C459" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </div>
+        <div class="spin-icon sd si-asig">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2M9 11a4 4 0 100-8 4 4 0 000 8zM23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75" stroke="#378ADD" stroke-width="1.8" stroke-linecap="round"/></svg>
+        </div>
+        <div class="spin-icon sd si-vm">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none"><path d="M2 3h6a4 4 0 014 4v14a3 3 0 00-3-3H2z" stroke="#EF9F27" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/><path d="M22 3h-6a4 4 0 00-4 4v14a3 3 0 013-3h7z" stroke="#EF9F27" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </div>
+      </div>
+    </div>
+    <div class="var-sep"></div>
+
+    <!-- E -->
+    <div class="var-row">
+      <div class="var-name">E — Arco grueso lento (7s)</div>
+      <div class="var-icons">
+        <div class="spin-icon se si-terr">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none"><path d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-1.447-.894L15 9m0 8V9m0 0L9 7" stroke="#97C459" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </div>
+        <div class="spin-icon se si-asig">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2M9 11a4 4 0 100-8 4 4 0 000 8zM23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75" stroke="#378ADD" stroke-width="1.8" stroke-linecap="round"/></svg>
+        </div>
+        <div class="spin-icon se si-vm">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none"><path d="M2 3h6a4 4 0 014 4v14a3 3 0 00-3-3H2z" stroke="#EF9F27" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/><path d="M22 3h-6a4 4 0 00-4 4v14a3 3 0 013-3h7z" stroke="#EF9F27" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </div>
+      </div>
+    </div>
+    <div class="var-sep"></div>
+
+    <!-- F -->
+    <div class="var-row">
+      <div class="var-name">F — Dual counter-spin</div>
+      <div class="var-icons">
+        <div class="spin-icon sf si-terr">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none"><path d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-1.447-.894L15 9m0 8V9m0 0L9 7" stroke="#97C459" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </div>
+        <div class="spin-icon sf si-asig">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2M9 11a4 4 0 100-8 4 4 0 000 8zM23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75" stroke="#378ADD" stroke-width="1.8" stroke-linecap="round"/></svg>
+        </div>
+        <div class="spin-icon sf si-vm">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none"><path d="M2 3h6a4 4 0 014 4v14a3 3 0 00-3-3H2z" stroke="#EF9F27" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/><path d="M22 3h-6a4 4 0 00-4 4v14a3 3 0 013-3h7z" stroke="#EF9F27" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+</body>
+</html>

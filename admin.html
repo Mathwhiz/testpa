@@ -1,0 +1,252 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <title>Admin — Territory App</title>
+  <link rel="icon" type="image/png" href="/icon-192.png">
+  <link rel="manifest" href="/manifest.json">
+  <meta name="theme-color" content="#1a1c1f">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Ziv">
+  <link rel="apple-touch-icon" href="/apple-touch-icon.png">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body { background-color: #1a1c1f; background-image: radial-gradient(ellipse at 10% 15%, rgba(127,119,221,0.10) 0%, transparent 50%), radial-gradient(ellipse at 90% 85%, rgba(55,138,221,0.08) 0%, transparent 50%); color: #eee; font-family: system-ui, sans-serif; min-height: 100vh; }
+    .app { max-width: 480px; margin: 0 auto; padding: 1.5rem 1rem; }
+    .view { animation: fadeIn .2s ease; }
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+
+    .section-title { font-size: 20px; font-weight: 700; color: #eee; margin-bottom: 4px; }
+    .section-sub   { font-size: 13px; color: #888; margin-bottom: 20px; }
+
+    .btn-primary   { background: #7F77DD; color: #fff; border: none; border-radius: 10px; padding: 12px 20px; font-size: 15px; font-weight: 600; cursor: pointer; width: 100%; }
+    .btn-primary:active  { opacity: .85; }
+    .btn-primary:disabled { opacity: .4; cursor: default; }
+    .btn-secondary { background: transparent; color: #aaa; border: 1px solid #444; border-radius: 10px; padding: 11px 20px; font-size: 14px; cursor: pointer; }
+    .btn-secondary:active { opacity: .75; }
+    .btn-row { display: flex; gap: 8px; margin-top: 14px; }
+
+    .field { margin-bottom: 14px; }
+    .field label { display: block; font-size: 11px; color: #888; margin-bottom: 5px; text-transform: uppercase; letter-spacing: .5px; }
+    .field input { width: 100%; background: #1e1e1e; border: 1px solid #444; border-radius: 8px; padding: 10px 12px; color: #eee; font-size: 15px; }
+    .field input:focus { outline: none; border-color: #7F77DD; }
+
+    /* PIN */
+    .pin-wrap  { display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 100vh; gap: 20px; }
+    .pin-title { font-size: 22px; font-weight: 700; color: #7F77DD; }
+    .pin-dots  { display: flex; gap: 12px; margin: 8px 0; }
+    .pin-dot   { width: 14px; height: 14px; border-radius: 50%; border: 2px solid #555; background: transparent; transition: .15s; }
+    .pin-dot.filled { background: #7F77DD; border-color: #7F77DD; }
+    .pin-grid  { display: grid; grid-template-columns: repeat(3, 64px); gap: 10px; }
+    .pin-btn   { background: #2a2a2a; border: none; border-radius: 12px; width: 64px; height: 64px; font-size: 22px; color: #eee; cursor: pointer; }
+    .pin-btn:active { background: #3a3a3a; }
+    .pin-error { color: #F09595; font-size: 13px; min-height: 18px; text-align: center; max-width: 220px; }
+
+    /* Wizard steps */
+    .step-indicator { display: flex; gap: 6px; margin-bottom: 20px; }
+    .step-dot { flex: 1; height: 3px; border-radius: 2px; background: #333; transition: .2s; }
+    .step-dot.active { background: #7F77DD; }
+
+    /* Grupo rows */
+    .grupo-row { display: flex; align-items: center; gap: 10px; background: #2a2a2a; border-radius: 10px; padding: 10px 12px; margin-bottom: 8px; }
+    .grupo-row input[type=color] { width: 36px; height: 36px; border: none; border-radius: 8px; cursor: pointer; padding: 2px; background: #1e1e1e; flex-shrink: 0; }
+    .gc-label { flex: 2; background: #1e1e1e; border: 1px solid #444; border-radius: 8px; padding: 8px 10px; color: #eee; font-size: 14px; min-width: 0; }
+    .gc-label:focus { outline: none; border-color: #7F77DD; }
+    .gc-pin   { flex: 1; background: #1e1e1e; border: 1px solid #444; border-radius: 8px; padding: 8px 10px; color: #eee; font-size: 14px; text-align: center; letter-spacing: 4px; min-width: 0; max-width: 80px; }
+    .gc-pin:focus { outline: none; border-color: #7F77DD; }
+    .btn-remove-grupo { background: none; border: none; color: #666; font-size: 18px; cursor: pointer; padding: 4px 6px; border-radius: 6px; flex-shrink: 0; }
+    .btn-remove-grupo:hover { color: #F09595; }
+    .btn-add-grupo { background: none; border: 1px dashed #444; border-radius: 10px; color: #666; font-size: 13px; padding: 10px; width: 100%; cursor: pointer; margin-top: 4px; }
+    .btn-add-grupo:hover { border-color: #7F77DD; color: #aaa; }
+
+    /* Territorios */
+    .terr-row { display:flex; align-items:center; gap:10px; padding:9px 12px; background:#2a2a2a; border-radius:10px; margin-bottom:6px; border:1.5px solid transparent; transition:.15s; }
+    .terr-row.changed { border-color:#7F77DD66; }
+    .terr-num  { font-size:14px; font-weight:700; min-width:32px; color:#eee; }
+    .terr-g-btns { display:flex; gap:5px; flex-wrap:wrap; flex:1; }
+    .terr-g-btn  { border:1.5px solid; border-radius:6px; padding:4px 8px; font-size:11px; font-weight:700; cursor:pointer; background:transparent; color:#888; transition:.1s; }
+    .terr-g-btn.sel { color:#fff; }
+    .terr-g-btn:active { opacity:.7; }
+    .terr-filtro-btn { border:1.5px solid #444; border-radius:8px; padding:6px 12px; font-size:12px; font-weight:600; cursor:pointer; background:transparent; color:#888; transition:.1s; }
+    .terr-filtro-btn.active { color:#fff; }
+    .save-bar { position:sticky; bottom:16px; margin-top:12px; }
+
+    /* Dashboard */
+    .congre-item { display: flex; align-items: center; gap: 10px; background: #2a2a2a; border-radius: 10px; padding: 12px 14px; margin-bottom: 8px; }
+    .congre-nombre { font-size: 15px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .congre-meta { font-size: 11px; color: #666; margin-top: 2px; }
+    .btn-card-action { background: #333; border: none; border-radius: 8px; width: 34px; height: 34px; font-size: 15px; cursor: pointer; flex-shrink: 0; }
+    .btn-card-action:hover { background: #3d3d3d; }
+    .btn-card-delete:hover { background: #4a1e1e; }
+
+    /* KML */
+    .kml-drop { border: 2px dashed #444; border-radius: 12px; padding: 36px 20px; text-align: center; cursor: pointer; color: #888; font-size: 14px; transition: .2s; }
+    .kml-drop:hover, .kml-drop.drag { border-color: #7F77DD; color: #bbb; }
+    .kml-drop-sm { padding: 10px 14px; border-radius: 8px; }
+    .kml-preview { background: #2a2a2a; border-radius: 10px; padding: 12px 14px; margin-top: 12px; font-size: 14px; color: #5DCAA5; }
+
+    /* Ciudades extra */
+    .ciudad-extra-row { background: #2a2a2a; border-radius: 10px; padding: 10px 12px; margin-bottom: 8px; }
+    .ciudades-extra-hdr { font-size: 11px; color: #666; text-transform: uppercase; letter-spacing: .5px; margin: 20px 0 8px; }
+
+    .loading-wrap { display: flex; align-items: center; justify-content: center; gap: 10px; padding: 24px; color: #888; font-size: 14px; }
+    .spinner { width: 20px; height: 20px; border: 2px solid #444; border-top-color: #7F77DD; border-radius: 50%; animation: spin .7s linear infinite; flex-shrink: 0; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    .status-ok  { color: #5DCAA5; font-size: 13px; margin-top: 8px; }
+    .status-err { color: #F09595; font-size: 13px; margin-top: 8px; }
+  </style>
+</head>
+<body>
+
+  <!-- ── PIN ── -->
+  <div id="view-pin" class="app">
+    <a href="index.html" style="position:fixed;top:16px;left:16px;z-index:100;display:inline-flex;align-items:center;gap:6px;font-size:13px;color:#aaa;text-decoration:none;padding:7px 13px;background:#252525;border:1px solid rgba(255,255,255,0.2);border-radius:10px;">‹ Congregaciones</a>
+    <div class="pin-wrap">
+      <div style="text-align:center;display:flex;flex-direction:column;align-items:center;gap:10px;">
+        <div class="cs-logo-placeholder"></div>
+        <div class="pin-title">Admin</div>
+        <div style="font-size:13px;color:#555;">Territory App</div>
+      </div>
+      <div class="pin-dots">
+        <div class="pin-dot" id="ad0"></div>
+        <div class="pin-dot" id="ad1"></div>
+        <div class="pin-dot" id="ad2"></div>
+        <div class="pin-dot" id="ad3"></div>
+      </div>
+      <div class="pin-error" id="pin-error"></div>
+      <div class="pin-grid">
+        <button class="pin-btn" onclick="pinPress('1')">1</button>
+        <button class="pin-btn" onclick="pinPress('2')">2</button>
+        <button class="pin-btn" onclick="pinPress('3')">3</button>
+        <button class="pin-btn" onclick="pinPress('4')">4</button>
+        <button class="pin-btn" onclick="pinPress('5')">5</button>
+        <button class="pin-btn" onclick="pinPress('6')">6</button>
+        <button class="pin-btn" onclick="pinPress('7')">7</button>
+        <button class="pin-btn" onclick="pinPress('8')">8</button>
+        <button class="pin-btn" onclick="pinPress('9')">9</button>
+        <button class="pin-btn" style="font-size:16px;" onclick="pinDelete()">⌫</button>
+        <button class="pin-btn" onclick="pinPress('0')">0</button>
+        <button class="pin-btn" style="color:#555;cursor:default;"></button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── DASHBOARD ── -->
+  <div id="view-dashboard" class="app" style="display:none">
+    <a href="index.html" style="position:fixed;top:16px;left:16px;z-index:100;display:inline-flex;align-items:center;gap:6px;font-size:13px;color:#aaa;text-decoration:none;padding:7px 13px;background:#252525;border:1px solid rgba(255,255,255,0.2);border-radius:10px;">‹ Congregaciones</a>
+    <div style="height:52px;"></div>
+    <p class="section-title" style="text-align:center;">Congregaciones</p>
+    <p class="section-sub" style="text-align:center;">Panel de administración</p>
+    <div id="dash-loading" class="loading-wrap"><div class="spinner"></div><div>Cargando...</div></div>
+    <div id="dash-list" style="display:none"></div>
+    <button class="btn-primary" style="margin-top:14px;" onclick="startWizard()">+ Nueva congregación</button>
+  </div>
+
+  <!-- ── WIZARD ── -->
+  <div id="view-wizard" class="app" style="display:none">
+    <a href="#" onclick="showView('view-dashboard');return false;" style="position:fixed;top:16px;left:16px;z-index:100;display:inline-flex;align-items:center;gap:6px;font-size:13px;color:#aaa;text-decoration:none;padding:7px 13px;background:#252525;border:1px solid rgba(255,255,255,0.2);border-radius:10px;">‹ Dashboard</a>
+    <div style="height:52px;"></div>
+    <div class="step-indicator">
+      <div class="step-dot" id="sdot-0"></div>
+      <div class="step-dot" id="sdot-1"></div>
+      <div class="step-dot" id="sdot-2"></div>
+    </div>
+
+    <!-- Paso 1: Datos básicos -->
+    <div id="step-0">
+      <p class="section-title" id="step0-title">Nueva congregación</p>
+      <p class="section-sub" id="step0-sub">Paso 1 de 3 · Datos básicos</p>
+      <div class="field">
+        <label>Nombre</label>
+        <input type="text" id="w-nombre" placeholder="Ej: Congregación Norte" autocomplete="off" oninput="onNombreInput()">
+      </div>
+      <div class="field" id="field-id">
+        <label>ID único</label>
+        <input type="text" id="w-id" placeholder="ej: norte" autocomplete="off" oninput="onIdInput()" style="font-family:monospace;">
+        <div id="field-id-hint" style="font-size:11px;color:#555;margin-top:4px;">Solo minúsculas, números y guiones. No se puede cambiar después.</div>
+      </div>
+      <div class="field">
+        <label>PIN del encargado de asignaciones</label>
+        <input type="text" id="w-pin" placeholder="4 dígitos" maxlength="4" inputmode="numeric" autocomplete="off">
+      </div>
+      <div class="field">
+        <label>PIN Vida y Ministerio</label>
+        <input type="text" id="w-pin-vm" placeholder="4 dígitos (default 1234)" maxlength="4" inputmode="numeric" autocomplete="off">
+      </div>
+      <div class="field">
+        <label>Ciudad principal (opcional)</label>
+        <input type="text" id="w-ciudad-principal" placeholder="Ej: Santa Rosa" autocomplete="off">
+      </div>
+      <div class="field">
+        <label>Color de la congregación</label>
+        <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:4px;">
+          <div id="w-color-swatches" style="display:flex;gap:6px;flex-wrap:wrap;"></div>
+          <input type="color" id="w-color" oninput="renderColorSwatches(this.value)" style="width:36px;height:36px;border:none;background:none;cursor:pointer;border-radius:8px;padding:0;" title="Color personalizado">
+        </div>
+      </div>
+      <div class="btn-row">
+        <button class="btn-secondary" onclick="showView('view-dashboard')">Cancelar</button>
+        <button class="btn-primary" onclick="wizardNext()">Siguiente →</button>
+      </div>
+    </div>
+
+    <!-- Paso 2: Grupos -->
+    <div id="step-1" style="display:none">
+      <p class="section-title">Grupos</p>
+      <p class="section-sub">Paso 2 de 3 · Color y PIN de cada grupo</p>
+      <div id="grupos-config"></div>
+      <div class="btn-row">
+        <button class="btn-secondary" onclick="wizardPrev()">← Volver</button>
+        <button class="btn-primary" onclick="wizardNext()">Siguiente →</button>
+      </div>
+    </div>
+
+    <!-- Paso 3: KML -->
+    <div id="step-2" style="display:none">
+      <p class="section-title">Territorios</p>
+      <p class="section-sub">Paso 3 de 3 · Subí el KML de Google My Maps</p>
+      <div class="kml-drop" id="kml-drop" onclick="document.getElementById('kml-input').click()">
+        <div style="font-size:30px;margin-bottom:10px;">🗺️</div>
+        <div>Tocá para subir un archivo <strong>.kml</strong></div>
+        <div style="font-size:12px;color:#666;margin-top:6px;">o arrastralo acá</div>
+      </div>
+      <input type="file" id="kml-input" accept=".kml" style="display:none" onchange="onKmlFile(this)">
+      <div id="kml-preview" class="kml-preview" style="display:none"></div>
+
+      <div class="ciudades-extra-hdr">Ciudades extra (opcional)</div>
+      <div id="ciudades-extra-list"></div>
+      <button class="btn-add-grupo" onclick="addCiudadExtra()">+ Agregar ciudad extra</button>
+
+      <div class="btn-row">
+        <button class="btn-secondary" onclick="wizardPrev()">← Volver</button>
+        <button class="btn-secondary" onclick="crearCongregacion(true)" style="flex:1;">Omitir KML</button>
+        <button class="btn-primary" id="btn-crear" onclick="crearCongregacion(false)" style="flex:2;" disabled>Crear →</button>
+      </div>
+      <div id="wizard-status"></div>
+    </div>
+  </div>
+
+  <!-- ── TERRITORIOS ── -->
+  <div id="view-territorios" class="app" style="display:none">
+    <a href="#" onclick="showView('view-dashboard');return false;" style="position:fixed;top:16px;left:16px;z-index:100;display:inline-flex;align-items:center;gap:6px;font-size:13px;color:#aaa;text-decoration:none;padding:7px 13px;background:#252525;border:1px solid rgba(255,255,255,0.2);border-radius:10px;">‹ Dashboard</a>
+    <div style="height:52px;"></div>
+    <p class="section-title" id="terr-title"></p>
+    <p class="section-sub">Asignación de grupos · tocá un grupo para asignar</p>
+    <div id="terr-filtros" style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:14px;"></div>
+    <div id="terr-loading" class="loading-wrap"><div class="spinner"></div><div>Cargando...</div></div>
+    <div id="terr-list"></div>
+    <div class="save-bar" id="terr-save-bar" style="display:none;">
+      <button class="btn-primary" onclick="saveTerritorios()">
+        Guardar <span id="terr-changes-count">0</span> cambios
+      </button>
+    </div>
+  </div>
+
+  <script>if('serviceWorker'in navigator)navigator.serviceWorker.register('/sw.js');</script>
+  <script src="ui-utils.js?v=1.3"></script>
+  <script type="module" src="admin.js"></script>
+</body>
+</html>

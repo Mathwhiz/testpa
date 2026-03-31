@@ -1,0 +1,281 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Vida y Ministerio — Ziv</title>
+  <link rel="icon" type="image/png" href="/icon-192.png">
+  <link rel="manifest" href="/manifest.json">
+  <meta name="theme-color" content="#1a1c1f">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Ziv">
+  <link rel="apple-touch-icon" href="/apple-touch-icon.png">
+  <link rel="stylesheet" href="styles.css?v=3.0">
+</head>
+<body>
+
+<button class="btn-home" id="btn-home" onclick="goToCover()" title="Inicio">
+  <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
+    <path d="M3 9.5L12 3l9 6.5V20a1 1 0 01-1 1H5a1 1 0 01-1-1V9.5z" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+    <path d="M9 21V12h6v9" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+  </svg>
+</button>
+
+<div class="app-inner">
+
+  <!-- ── COVER ── -->
+  <div id="view-cover" class="view active">
+    <div class="cs-module-cover">
+      <div class="cs-module-icon-anim" style="--module-color:#EF9F27;--module-color-dim:rgba(239,159,39,0.35);">
+        <div class="cs-module-icon-wrap" style="background:rgba(239,159,39,0.15);">
+          <svg width="38" height="38" viewBox="0 0 24 24" fill="none">
+            <path d="M2 3h6a4 4 0 014 4v14a3 3 0 00-3-3H2z" stroke="#EF9F27" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+            <path d="M22 3h-6a4 4 0 00-4 4v14a3 3 0 013-3h7z" stroke="#EF9F27" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </div>
+      </div>
+      <div class="cs-module-title">Vida y Ministerio</div>
+      <div class="cs-module-sub" id="cover-congre" style="color:#EF9F27;">—</div>
+      <div class="cs-module-label">¿Qué querés hacer?</div>
+
+      <button class="cs-module-card" style="--card-hover-border:rgba(239,159,39,0.55);--card-hover-bg:#272010;--card-hover-shadow:0 6px 24px rgba(0,0,0,0.35),0 0 0 1px rgba(239,159,39,0.55),0 4px 20px rgba(239,159,39,0.12);" onclick="goToVerPrograma()">
+        <div class="cs-module-card-icon" style="background:rgba(239,159,39,0.15);">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+            <rect x="3" y="4" width="18" height="18" rx="2" stroke="#EF9F27" stroke-width="1.8"/>
+            <path d="M16 2v4M8 2v4M3 10h18" stroke="#EF9F27" stroke-width="1.8" stroke-linecap="round"/>
+            <path d="M8 14h.01M12 14h.01M16 14h.01M8 18h.01M12 18h.01" stroke="#EF9F27" stroke-width="2" stroke-linecap="round"/>
+          </svg>
+        </div>
+        <div>
+          <div class="cs-module-card-title">Ver programa</div>
+          <div class="cs-module-card-sub">Programa de esta semana</div>
+        </div>
+      </button>
+
+      <button class="cs-module-card" style="--card-hover-border:rgba(127,119,221,0.55);--card-hover-bg:#1a1820;--card-hover-shadow:0 6px 24px rgba(0,0,0,0.35),0 0 0 1px rgba(127,119,221,0.55),0 4px 20px rgba(127,119,221,0.12);" onclick="goToPin()">
+        <div class="cs-module-card-icon" style="background:rgba(127,119,221,0.15);">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+            <rect x="3" y="11" width="18" height="11" rx="2" stroke="#7F77DD" stroke-width="1.8"/>
+            <path d="M7 11V7a5 5 0 0110 0v4" stroke="#7F77DD" stroke-width="1.8" stroke-linecap="round"/>
+          </svg>
+        </div>
+        <div>
+          <div class="cs-module-card-title">Encargado</div>
+          <div class="cs-module-card-sub">Gestionar programa</div>
+        </div>
+      </button>
+
+      <a href="../index.html" class="cs-back-btn">← Volver al módulo</a>
+    </div>
+  </div>
+
+  <!-- ── PIN MODAL ── -->
+  <div id="pin-modal-vm" class="pin-modal" style="display:none;">
+    <div class="pin-card">
+      <div class="pin-title">Encargado</div>
+      <div class="pin-sub">Ingresá el PIN</div>
+      <div class="pin-dots">
+        <div class="pin-dot" id="vp0"></div>
+        <div class="pin-dot" id="vp1"></div>
+        <div class="pin-dot" id="vp2"></div>
+        <div class="pin-dot" id="vp3"></div>
+      </div>
+      <div class="pin-grid">
+        <button class="pin-btn" onclick="pinPress('1')">1</button>
+        <button class="pin-btn" onclick="pinPress('2')">2</button>
+        <button class="pin-btn" onclick="pinPress('3')">3</button>
+        <button class="pin-btn" onclick="pinPress('4')">4</button>
+        <button class="pin-btn" onclick="pinPress('5')">5</button>
+        <button class="pin-btn" onclick="pinPress('6')">6</button>
+        <button class="pin-btn" onclick="pinPress('7')">7</button>
+        <button class="pin-btn" onclick="pinPress('8')">8</button>
+        <button class="pin-btn" onclick="pinPress('9')">9</button>
+        <button class="pin-btn" style="visibility:hidden;"></button>
+        <button class="pin-btn" onclick="pinPress('0')">0</button>
+        <button class="pin-btn pin-del" onclick="pinDelete()">⌫</button>
+      </div>
+      <div class="pin-error" id="pin-error"></div>
+      <button class="pin-cancel" onclick="pinCancel()">Cancelar</button>
+    </div>
+  </div>
+
+  <!-- ── VER PROGRAMA (público) ── -->
+  <div id="view-programa-pub" class="view">
+    <div style="padding-top:4px;">
+      <div class="view-header">
+        <div style="flex:1">
+          <div class="view-title" id="pub-semana-titulo">Programa</div>
+          <div class="view-sub">Vida y Ministerio</div>
+        </div>
+        <button class="btn-nav-sem" onclick="navSemanaPublico(-1)" title="Semana anterior">‹</button>
+        <button class="btn-nav-sem" onclick="navSemanaPublico(1)" title="Semana siguiente">›</button>
+        <button class="btn-nav-sem" onclick="compartirSemanaFoto()" title="Compartir como foto">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M4 12v8a2 2 0 002 2h12a2 2 0 002-2v-8"/><polyline points="16 6 12 2 8 6"/><line x1="12" y1="2" x2="12" y2="15"/>
+          </svg>
+        </button>
+      </div>
+      <div id="pub-contenido">
+        <div class="loading-wrap"><div class="spinner"></div><div class="loading-txt">Cargando…</div></div>
+      </div>
+      <div style="height:14px;"></div>
+      <button class="cs-back-btn" style="background:transparent;cursor:pointer;font-family:inherit;display:block;margin:0 auto;" onclick="goToCover()">← Volver</button>
+      <div style="height:2rem;"></div>
+    </div>
+  </div>
+
+  <!-- ── MENÚ ENCARGADO (tras PIN) ── -->
+  <div id="view-menu-enc" class="view">
+    <div style="min-height:calc(100vh - 2rem);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:0;padding:2rem 1rem;">
+      <p class="section-title" style="color:#7F77DD;margin-bottom:4px;">Encargado</p>
+      <p class="section-sub" id="menu-enc-congre-sub" style="margin-bottom:16px;">—</p>
+      <div style="display:flex;flex-direction:column;align-items:center;gap:14px;min-width:320px;">
+        <button class="cs-module-card" style="--card-hover-border:rgba(239,159,39,0.55);--card-hover-bg:#272010;--card-hover-shadow:0 6px 24px rgba(0,0,0,0.35),0 0 0 1px rgba(239,159,39,0.55),0 4px 20px rgba(239,159,39,0.12);" onclick="goToSemanas()">
+          <div class="cs-module-card-icon" style="background:rgba(239,159,39,0.15);">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
+              <rect x="3" y="4" width="18" height="18" rx="2" stroke="#EF9F27" stroke-width="1.8"/>
+              <path d="M16 2v4M8 2v4M3 10h18" stroke="#EF9F27" stroke-width="1.8" stroke-linecap="round"/>
+              <path d="M8 14h.01M12 14h.01M16 14h.01M8 18h.01M12 18h.01" stroke="#EF9F27" stroke-width="2" stroke-linecap="round"/>
+            </svg>
+          </div>
+          <div>
+            <div class="cs-module-card-title">Programa</div>
+            <div class="cs-module-card-sub">Semanas y asignaciones</div>
+          </div>
+        </button>
+
+<button class="btn-secondary" onclick="cerrarSesionVM()" style="width:100%;border-color:#A32D2D;color:#F09595;">Cerrar sesión</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── PROGRAMA (semanas, encargado) ── -->
+  <div id="view-semanas" class="view">
+    <div style="padding-top:4px;">
+      <div class="view-header">
+        <button class="btn-back" onclick="goToMenuEnc()">←</button>
+        <div style="flex:1">
+          <div class="view-title">Programa</div>
+          <div class="view-sub" id="semanas-congre-sub">—</div>
+        </div>
+        <button class="btn-config-vm" id="btn-config-vm" onclick="goToConfig()" title="Configuración" style="display:none;">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+            <circle cx="12" cy="12" r="3" stroke="currentColor" stroke-width="1.8"/>
+            <path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </button>
+      </div>
+
+      <!-- Tabs -->
+      <div class="vm-tabs">
+        <button class="vm-tab-btn active" data-tab="semanas" onclick="switchVmTab('semanas')">Semanas</button>
+        <button class="vm-tab-btn" data-tab="generar" onclick="goToNueva()">Generar Semanas</button>
+      </div>
+
+      <!-- Tab: Semanas -->
+      <div class="vm-tab-panel active" data-tab="semanas">
+        <div id="semanas-list">
+          <div class="loading-wrap"><div class="spinner"></div><div class="loading-txt">Cargando…</div></div>
+        </div>
+        <div id="vm-export-section" style="display:none; margin-top:10px;">
+          <div class="vm-export-row">
+            <span style="font-size:13px;color:#aaa;white-space:nowrap;">Mes:</span>
+            <input type="month" id="vm-export-mes" class="vm-export-mes-input">
+            <button class="btn-sheets-vm" onclick="exportarMesASheets()">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="margin-right:4px;vertical-align:middle;"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+              Exportar a Sheets
+            </button>
+          </div>
+          <div id="vm-export-status"></div>
+        </div>
+      </div>
+
+      <!-- Tab: Generar Semanas -->
+      <div class="vm-tab-panel" data-tab="generar">
+        <div class="field">
+          <label>Fecha (se ajusta al lunes de esa semana)</label>
+          <input type="date" id="nueva-fecha">
+        </div>
+        <label class="check-row" style="display:flex;align-items:center;gap:10px;padding:6px 0;cursor:pointer;">
+          <input type="checkbox" id="nueva-reemplazar" style="width:18px;height:18px;accent-color:#EF9F27;cursor:pointer;">
+          <span style="font-size:14px;color:#ccc;">Reemplazar semanas existentes</span>
+        </label>
+        <div class="field">
+          <label>¿Cuántas semanas generar?</label>
+          <select id="nueva-n-semanas">
+            <option value="1" selected>1 semana</option>
+            <option value="2">2 semanas</option>
+            <option value="3">3 semanas</option>
+            <option value="4">4 semanas</option>
+            <option value="5">5 semanas</option>
+            <option value="6">6 semanas</option>
+            <option value="7">7 semanas</option>
+            <option value="8">8 semanas</option>
+          </select>
+        </div>
+        <div style="display:flex;gap:8px;margin-top:8px;">
+          <button class="btn-secondary" onclick="switchVmTab('semanas')" style="flex:1">Cancelar</button>
+          <button class="btn-primary" onclick="crearSemana()" style="flex:2.5">Generar →</button>
+        </div>
+        <div style="height:2rem;"></div>
+      </div>
+
+      <div style="height:2rem;"></div>
+    </div>
+  </div>
+
+
+  <!-- ── PROGRAMA EDITABLE (encargado) ── -->
+  <div id="view-semana" class="view">
+    <div style="padding-top:4px;">
+      <div class="view-header">
+        <button class="btn-back" onclick="goToSemanas()">‹</button>
+        <div style="flex:1">
+          <div class="view-title" id="semana-titulo-display">—</div>
+          <div class="view-sub">Programa Vida y Ministerio</div>
+        </div>
+        <button class="btn-nav-sem" id="btn-sem-prev" onclick="navSemana(-1)" title="Semana anterior">‹</button>
+        <button class="btn-nav-sem" id="btn-sem-next" onclick="navSemana(1)" title="Semana siguiente">›</button>
+      </div>
+      <div class="vm-action-bar" id="vm-action-bar">
+        <button class="btn-wol" onclick="reimportarDeWOL()">↓ WOL</button>
+        <button class="btn-primary" onclick="guardarSemana()">Guardar</button>
+        <button class="btn-autocomplete" onclick="autocompletarHermanos()" disabled title="Próximamente">✦ Auto</button>
+        <button class="btn-danger-outline btn-sm" onclick="eliminarSemana(semanaData?.fecha)">Eliminar</button>
+      </div>
+      <div id="semana-content"></div>
+    </div>
+  </div>
+
+  <!-- ── CONFIGURACIÓN (encargado) ── -->
+  <div id="view-config" class="view">
+    <div style="padding-top:4px;">
+      <div class="view-header">
+        <button class="btn-back" onclick="goToSemanas()">‹</button>
+        <div>
+          <div class="view-title">Configuración</div>
+          <div class="view-sub">Vida y Ministerio</div>
+        </div>
+      </div>
+      <div class="config-seccion">
+        <div class="config-seccion-titulo">Sala Auxiliar</div>
+        <label class="config-toggle-row">
+          <input type="checkbox" id="config-aux" style="width:18px;height:18px;accent-color:#EF9F27;cursor:pointer;">
+          <span>Esta congregación tiene sala auxiliar</span>
+        </label>
+        <div class="config-hint">Al activar, el programa muestra campos para asignar hermanos en la sala auxiliar en las partes de ministerio y en la lectura bíblica.</div>
+      </div>
+      <button class="btn-primary" onclick="guardarConfig()">Guardar</button>
+      <div style="height:2rem;"></div>
+    </div>
+  </div>
+
+</div><!-- /app-inner -->
+
+<script>if('serviceWorker'in navigator)navigator.serviceWorker.register('/sw.js');</script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<script src="../ui-utils.js?v=1.3"></script>
+<script type="module" src="app.js?v=2.0"></script>
+</body>
+</html>
